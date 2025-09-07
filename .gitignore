@@ -68,5 +68,14 @@ tmp/
 *.zip
 *.tar.gz
 
+# ==================== APPLICATION CONFIGURATION ====================
+# Ignore local development configuration files
+# Keep template files and Docker-specific configurations
 application.properties
 application.yml
+
+# But allow template and Docker-specific files
+!**/application-template.properties
+!**/application-template.yml
+!**/application-docker.yml
+!**/application-docker.properties

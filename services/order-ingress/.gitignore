@@ -4,6 +4,17 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+# ==================== APPLICATION CONFIGURATION ====================
+# Ignore local development configuration files
+application.properties
+application.yml
+
+# But allow template and Docker-specific files
+!src/main/resources/application-template.properties
+!src/main/resources/application-template.yml
+!src/main/resources/application-docker.yml
+!src/main/resources/application-docker.properties
+
 ### STS ###
 .apt_generated
 .classpath
