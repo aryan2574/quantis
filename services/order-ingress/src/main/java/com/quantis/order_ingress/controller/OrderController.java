@@ -5,6 +5,7 @@ import com.quantis.order_ingress.model.Order;
 import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
 
 import java.util.Map;
 import java.util.UUID;
@@ -76,16 +77,29 @@ public class OrderController {
      * @throws Exception If there's an error serializing the order to JSON
      */
     @PostMapping
-    public ResponseEntity<Object> placeOrder(@RequestBody Order order) throws Exception {
+    public Mono<ResponseEntity<Object>> placeOrder(@RequestBody Order order) throws Exception {
         
         // STEP 1: VALIDATION
         // Check if the trading symbol is provided and not empty
-        // This is basic validation - in a real system, you'd have more comprehensive validation
         if (order.getSymbol() == null || order.getSymbol().isBlank()) {
-            // Return HTTP 400 Bad Request with error message
-            return ResponseEntity.badRequest().body(Map.of(
+            return Mono.just(ResponseEntity.badRequest().body(Map.of(
                 "error", "Symbol cannot be empty"
-            ));
+            )));
+        }
+
+        // Validate userId format (must be valid UUID)
+        if (order.getUserId() == null || order.getUserId().isBlank()) {
+            return Mono.just(ResponseEntity.badRequest().body(Map.of(
+                "error", "User ID cannot be empty"
+            )));
+        }
+        
+        try {
+            UUID.fromString(order.getUserId());
+        } catch (IllegalArgumentException e) {
+            return Mono.just(ResponseEntity.badRequest().body(Map.of(
+                "error", "User ID must be a valid UUID format (e.g., 550e8400-e29b-41d4-a716-446655440000)"
+            )));
         }
 
         // STEP 2: ORDER ID GENERATION
@@ -105,13 +119,13 @@ public class OrderController {
         // - "orders": The Kafka topic name
         // - orderId: The message key (used for partitioning and ordering)
         // - jsonOrder: The message value (the JSON string)
-        kafkaTemplate.send("orders", orderId, jsonOrder);
+        var future = kafkaTemplate.send("orders", orderId, jsonOrder);
 
         // STEP 5: RESPONSE
-        // Return HTTP 200 OK with confirmation details
-        return ResponseEntity.ok(Map.of(
-            "message", "Order accepted",  // Success message
-            "orderId", orderId           // The generated order ID for reference
-        ));
+        // Return HTTP 200 OK after the send completes successfully (non-blocking)
+        return Mono.fromFuture(future).map(r -> ResponseEntity.ok(Map.of(
+            "message", "Order accepted",
+            "orderId", orderId
+        )));
     }
 }

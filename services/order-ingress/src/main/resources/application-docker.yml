@@ -1,0 +1,79 @@
+# ==================== DOCKER CONFIGURATION ====================
+# Configuration for running in Docker containers
+# This overrides localhost references with environment variables
+
+spring:
+  application:
+    name: order-ingress
+
+  # ==================== KAFKA CONFIGURATION ====================
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      retries: 3
+      acks: all
+      batch-size: 16384
+      linger-ms: 1
+      buffer-memory: 33554432
+      enable-idempotence: true
+      compression-type: snappy
+      properties:
+        auto.create.topics.enable: true
+    admin:
+      properties:
+        auto.create.topics.enable: true
+
+# ==================== SERVER CONFIGURATION ====================
+server:
+  port: ${SERVER_PORT:8080}
+  servlet:
+    context-path: /
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+  error:
+    include-message: always
+    include-binding-errors: always
+
+# ==================== MANAGEMENT ENDPOINTS ====================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      show-components: always
+    metrics:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# ==================== LOGGING CONFIGURATION ====================
+logging:
+  level:
+    root: INFO
+    com.quantis.order_ingress: DEBUG
+    org.springframework.kafka: INFO
+    org.apache.kafka: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: /app/logs/order-ingress.log
+    max-size: 10MB
+    max-history: 30
+
+# ==================== TRADING PLATFORM SPECIFIC ====================
+trading:
+  order:
+    max-quantity: ${MAX_ORDER_QUANTITY:1000000}
+    min-quantity: ${MIN_ORDER_QUANTITY:1}
+    max-price: ${MAX_ORDER_PRICE:1000000.0}
+    min-price: ${MIN_ORDER_PRICE:0.01}
+    allowed-symbols: ${ALLOWED_SYMBOLS:AAPL,GOOGL,MSFT,TSLA,AMZN,META,NVDA,NFLX}
