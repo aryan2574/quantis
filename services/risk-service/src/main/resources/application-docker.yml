@@ -1,0 +1,116 @@
+# ==================== DOCKER CONFIGURATION ====================
+# Configuration for running in Docker containers
+# This overrides localhost references with environment variables
+
+spring:
+  application:
+    name: risk-service
+
+  # ==================== KAFKA CONFIGURATION ====================
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: risk-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        auto.create.topics.enable: true
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        auto.create.topics.enable: true
+    admin:
+      properties:
+        auto.create.topics.enable: true
+
+  # ==================== DATABASE CONFIGURATION ====================
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/${DB_NAME:quantisdb}
+    username: ${DB_USERNAME:quantis}
+    password: ${DB_PASSWORD:quantis}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  # ==================== JPA CONFIGURATION ====================
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        jdbc:
+          batch_size: 20
+          fetch_size: 20
+
+  # ==================== REDIS CONFIGURATION ====================
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    timeout: 2000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+        max-wait: -1ms
+
+# ==================== SERVER CONFIGURATION ====================
+server:
+  port: ${SERVER_PORT:8081}
+  servlet:
+    context-path: /
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+
+# ==================== MANAGEMENT ENDPOINTS ====================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      show-components: always
+    metrics:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# ==================== LOGGING CONFIGURATION ====================
+logging:
+  level:
+    root: INFO
+    com.quantis.risk_service: DEBUG
+    org.springframework.kafka: INFO
+    org.apache.kafka: INFO
+    org.hibernate.SQL: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: /app/logs/risk-service.log
+    max-size: 10MB
+    max-history: 30
+
+# ==================== TRADING PLATFORM SPECIFIC ====================
+trading:
+  risk:
+    max-order-value: ${MAX_ORDER_VALUE:1000000.0}
+    max-daily-volume: ${MAX_DAILY_VOLUME:10000000.0}
+    position-limits:
+      enabled: ${POSITION_LIMITS_ENABLED:true}
+      max-position-size: ${MAX_POSITION_SIZE:100000}
