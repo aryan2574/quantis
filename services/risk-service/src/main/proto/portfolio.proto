@@ -1,0 +1,136 @@
+syntax = "proto3";
+
+package com.quantis.portfolio;
+
+option java_multiple_files = true;
+option java_package = "com.quantis.portfolio_service.grpc";
+option java_outer_classname = "PortfolioProto";
+
+// Portfolio Service Definition
+service PortfolioService {
+  // Get user's cash balance
+  rpc GetCashBalance(GetCashBalanceRequest) returns (GetCashBalanceResponse);
+  
+  // Get user's position value for a specific symbol
+  rpc GetPositionValue(GetPositionValueRequest) returns (GetPositionValueResponse);
+  
+  // Get user's total portfolio value
+  rpc GetPortfolioValue(GetPortfolioValueRequest) returns (GetPortfolioValueResponse);
+  
+  // Get user's position details
+  rpc GetPosition(GetPositionRequest) returns (GetPositionResponse);
+  
+  // Get all positions for a user
+  rpc GetAllPositions(GetAllPositionsRequest) returns (GetAllPositionsResponse);
+  
+  // Update position after trade execution
+  rpc UpdatePosition(UpdatePositionRequest) returns (UpdatePositionResponse);
+  
+  // Get user's trading history
+  rpc GetTradingHistory(GetTradingHistoryRequest) returns (GetTradingHistoryResponse);
+}
+
+// Request/Response Messages
+message GetCashBalanceRequest {
+  string user_id = 1;
+}
+
+message GetCashBalanceResponse {
+  double cash_balance = 1;
+  string currency = 2;
+  int64 timestamp = 3;
+}
+
+message GetPositionValueRequest {
+  string user_id = 1;
+  string symbol = 2;
+}
+
+message GetPositionValueResponse {
+  double position_value = 1;
+  double quantity = 2;
+  double average_price = 3;
+  double current_price = 4;
+  double unrealized_pnl = 5;
+  string symbol = 6;
+  int64 timestamp = 7;
+}
+
+message GetPortfolioValueRequest {
+  string user_id = 1;
+}
+
+message GetPortfolioValueResponse {
+  double total_value = 1;
+  double cash_balance = 2;
+  double positions_value = 3;
+  double unrealized_pnl = 4;
+  string currency = 5;
+  int64 timestamp = 6;
+}
+
+message GetPositionRequest {
+  string user_id = 1;
+  string symbol = 2;
+}
+
+message GetPositionResponse {
+  string user_id = 1;
+  string symbol = 2;
+  double quantity = 3;
+  double average_price = 4;
+  double current_price = 5;
+  double market_value = 6;
+  double unrealized_pnl = 7;
+  int64 last_updated = 8;
+}
+
+message GetAllPositionsRequest {
+  string user_id = 1;
+}
+
+message GetAllPositionsResponse {
+  repeated GetPositionResponse positions = 1;
+  double total_positions_value = 2;
+  double total_unrealized_pnl = 3;
+  int64 timestamp = 4;
+}
+
+message UpdatePositionRequest {
+  string user_id = 1;
+  string symbol = 2;
+  double quantity_change = 3;  // positive for buy, negative for sell
+  double price = 4;
+  string side = 5;  // BUY or SELL
+  string order_id = 6;
+}
+
+message UpdatePositionResponse {
+  bool success = 1;
+  string message = 2;
+  GetPositionResponse updated_position = 3;
+}
+
+message GetTradingHistoryRequest {
+  string user_id = 1;
+  int32 limit = 2;
+  int64 start_timestamp = 3;
+  int64 end_timestamp = 4;
+}
+
+message TradingRecord {
+  string order_id = 1;
+  string symbol = 2;
+  string side = 3;
+  double quantity = 4;
+  double price = 5;
+  double total_value = 6;
+  int64 timestamp = 7;
+  string status = 8;
+}
+
+message GetTradingHistoryResponse {
+  repeated TradingRecord trades = 1;
+  int32 total_count = 2;
+  int64 timestamp = 3;
+}
