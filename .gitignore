@@ -79,3 +79,7 @@ application.yml
 !**/application-template.yml
 !**/application-docker.yml
 !**/application-docker.properties
+services/risk-service/src/main/resources/application-docker.yml
+services/risk-service/src/main/resources/application-docker.yml
+services/portfolio-service/src/main/resources/application-docker.yml
+services/trading-engine/src/main/resources/application-docker.yml
