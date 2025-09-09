@@ -1,16 +1,16 @@
-# Compiled class file
+# ==================== COMPILED FILES ====================
+# Compiled class files
 *.class
 
-# Log file
+# ==================== LOG FILES ====================
+# Log files
 *.log
+.log.
+*.trace
+logs/
 
-# BlueJ files
-*.ctxt
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
-# Package Files #
+# ==================== PACKAGE FILES ====================
+# Archive files
 *.jar
 *.war
 *.nar
@@ -19,13 +19,29 @@
 *.tar.gz
 *.rar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+# ==================== VIRTUAL MACHINE ====================
+# JVM crash logs
 hs_err_pid*
 replay_pid*
 
-.idea
+# ==================== IDE FILES ====================
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
 
-Maven
+# Eclipse
+.classpath
+.project
+.settings/
+
+# VS Code
+.vscode/
+
+# ==================== MAVEN ====================
+# Maven build files
 target/
 pom.xml.tag
 pom.xml.versionsBackup
@@ -33,53 +49,29 @@ pom.xml.next
 release.properties
 dependency-reduced-pom.xml
 build/
+.mvn/
 
-Eclipse
-.classpath
-.project
-.settings/
-
-IntelliJ IDEA
-.idea/
-*.iws
-*.iml
-*.ipr
-out/
-
-VS Code
-.vscode/
-
-Logs
-logs/
-*.log
-.log.
-*.trace
-
-OS
+# ==================== OS FILES ====================
+# macOS
 .DS_Store
+
+# Windows
 Thumbs.db
 
-Misc
-.mvn/
-*.class
+# ==================== TEMPORARY FILES ====================
+# Temporary files
 tmp/
-*.jar
-*.war
-*.zip
-*.tar.gz
+.mtj.tmp/
 
 # ==================== APPLICATION CONFIGURATION ====================
 # Ignore local development configuration files
 # Keep template files and Docker-specific configurations
 application.properties
 application.yml
+application-docker.yml
 
-# But allow template and Docker-specific files
+# But allow template and Docker-specific files in specific locations
 !**/application-template.properties
 !**/application-template.yml
 !**/application-docker.yml
 !**/application-docker.properties
-services/risk-service/src/main/resources/application-docker.yml
-services/risk-service/src/main/resources/application-docker.yml
-services/portfolio-service/src/main/resources/application-docker.yml
-services/trading-engine/src/main/resources/application-docker.yml
