@@ -1,5 +1,9 @@
 version: "3.8"
 services:
+  # ==================== EXTERNAL SERVICES (DOCKER) ====================
+  # These services run in Docker containers
+  # Your application services (order-ingress, portfolio-service, risk-service, trading-engine) run locally
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.3.0
     environment:
@@ -29,102 +33,42 @@ services:
     ports:
       - "5433:5432"
 
-  cassandra:
-    image: cassandra:4.1
-    environment:
-      CASSANDRA_CLUSTER_NAME: QuantisCluster
-      CASSANDRA_START_RPC: "true"
-    ports:
-      - "9042:9042"
-
   redis:
     image: redis:7.2
     ports:
       - "6379:6379"
 
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
-    environment:
-      - discovery.type=single-node
-      - ES_JAVA_OPTS=-Xms512m -Xmx512m
-      - xpack.security.enabled=false
-      - xpack.security.http.ssl.enabled=false
-    ports:
-      - "9200:9200"
-    volumes:
-      - esdata:/usr/share/elasticsearch/data
+  # Optional services (commented out - uncomment if needed)
+  # cassandra:
+  #   image: cassandra:4.1
+  #   environment:
+  #     CASSANDRA_CLUSTER_NAME: QuantisCluster
+  #     CASSANDRA_START_RPC: "true"
+  #   ports:
+  #     - "9042:9042"
 
-  order-ingress:
-    build:
-      context: ../services/order-ingress
-      dockerfile: Dockerfile
-    ports:
-      - "8080:8080"
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-      - SERVER_PORT=8080
-    depends_on:
-      - kafka
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--no-verbose",
-          "--tries=1",
-          "--spider",
-          "http://localhost:8080/actuator/health",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    volumes:
-      - order-ingress-logs:/app/logs
+  # elasticsearch:
+  #   image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
+  #   environment:
+  #     - discovery.type=single-node
+  #     - ES_JAVA_OPTS=-Xms512m -Xmx512m
+  #     - xpack.security.enabled=false
+  #     - xpack.security.http.ssl.enabled=false
+  #   ports:
+  #     - "9200:9200"
+  #   volumes:
+  #     - esdata:/usr/share/elasticsearch/data
 
-  risk-service:
-    build:
-      context: ../services/risk-service
-      dockerfile: Dockerfile
-    ports:
-      - "8081:8081"
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_NAME=quantisdb
-      - DB_USERNAME=quantis
-      - DB_PASSWORD=quantis
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - SERVER_PORT=8081
-    depends_on:
-      - kafka
-      - postgres
-      - redis
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--no-verbose",
-          "--tries=1",
-          "--spider",
-          "http://localhost:8081/actuator/health",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    volumes:
-      - risk-service-logs:/app/logs
+  # ==================== APPLICATION SERVICES (RUN LOCALLY) ====================
+  # These services are configured to run locally on your machine
+  # Start them manually using: ./mvnw spring-boot:run
+  #
+  # order-ingress:     http://localhost:8080
+  # portfolio-service: http://localhost:8082 (HTTP), localhost:9090 (gRPC)
+  # risk-service:      http://localhost:8081
+  # trading-engine:    http://localhost:8083
 
 volumes:
   esdata:
     driver: local
-  order-ingress-logs:
-    driver: local
-  risk-service-logs:
-    driver: local
+  # Application service logs are stored locally in services/*/logs/ directories

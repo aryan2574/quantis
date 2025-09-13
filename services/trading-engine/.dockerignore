@@ -39,3 +39,70 @@ src/test/
 # Temporary files
 *.tmp
 *.temp
+
+# ==================== ENVIRONMENT FILES ====================
+# Environment variable files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env.*.local
+
+# ==================== C++ BUILD ARTIFACTS ====================
+# C++ compiled objects and build artifacts (but keep the main DLL)
+*.o
+*.obj
+src/main/cpp/build/
+cmake-build-*/
+
+# But keep the main DLL in resources/lib/
+!src/main/resources/lib/*.dll
+
+# ==================== TEST FILES AND SCRIPTS ====================
+# Test scripts and executables
+test-*.ps1
+test-*.bat
+test-*.sh
+test-*.exe
+*-test.*
+*-test-*
+
+# ==================== COMPRESSED FILES ====================
+# Compressed log files
+*.gz
+*.bz2
+*.xz
+*.7z
+
+# ==================== DATABASE FILES ====================
+# SQLite databases
+*.db
+*.sqlite
+*.sqlite3
+
+# ==================== CACHE FILES ====================
+# Gradle cache
+.gradle/
+gradle-app.setting
+
+# Node.js cache (if any)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ==================== BACKUP FILES ====================
+# Backup files
+*.bak
+*.backup
+*~
+*.swp
+*.swo
+
+# ==================== TRADING ENGINE SPECIFIC ====================
+# Additional documentation files not needed in Docker
+ARCHITECTURE.md
+README.md
+ENVIRONMENT_SETUP.md
+env.template
