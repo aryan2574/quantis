@@ -2,9 +2,9 @@ package com.quantis.trading_engine.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.quantis.trading_engine.model.Order;
-import com.quantis.trading_engine.service.TradingEngine;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@ConditionalOnProperty(name = "cpp.engine.enabled", havingValue = "true", matchIfMissing = false)
 public class OrderConsumer {
     
     private final ObjectMapper objectMapper;
@@ -32,7 +33,7 @@ public class OrderConsumer {
             order.setReceivedAt(java.time.Instant.now());
             order.setStatus(Order.OrderStatus.PENDING);
             
-            // Execute the order
+            // Execute the order using C++ trading engine
             tradingEngine.executeOrder(order);
             
         } catch (Exception e) {

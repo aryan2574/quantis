@@ -1,5 +1,7 @@
 package com.quantis.trading_engine.config;
 
+import org.apache.kafka.clients.admin.AdminClientConfig;
+import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -8,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
+import org.springframework.kafka.config.TopicBuilder;
 import org.springframework.kafka.core.*;
 
 import java.util.HashMap;
@@ -65,5 +68,56 @@ public class KafkaConfig {
     @Bean
     public KafkaTemplate<String, String> kafkaTemplate() {
         return new KafkaTemplate<>(producerFactory());
+    }
+    
+    /**
+     * KafkaAdmin bean for creating topics
+     */
+    @Bean
+    public KafkaAdmin kafkaAdmin() {
+        Map<String, Object> configs = new HashMap<>();
+        configs.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        return new KafkaAdmin(configs);
+    }
+    
+    /**
+     * Creates the 'trades.out' topic for published trades
+     * This topic is consumed by external services
+     */
+    @Bean
+    public NewTopic tradesOutTopic() {
+        return TopicBuilder.name("trades.out")
+                .partitions(6)
+                .replicas(1)
+                .config("cleanup.policy", "delete")
+                .config("retention.ms", "2592000000") // 30 days
+                .config("compression.type", "snappy")
+                .build();
+    }
+    
+    /**
+     * Creates the 'trades.executed' topic for internal trade tracking
+     */
+    @Bean
+    public NewTopic tradesExecutedTopic() {
+        return TopicBuilder.name("trades.executed")
+                .partitions(3)
+                .replicas(1)
+                .config("cleanup.policy", "delete")
+                .config("retention.ms", "604800000") // 7 days
+                .build();
+    }
+    
+    /**
+     * Creates the 'market.data' topic for market data updates
+     */
+    @Bean
+    public NewTopic marketDataTopic() {
+        return TopicBuilder.name("market.data")
+                .partitions(6)
+                .replicas(1)
+                .config("cleanup.policy", "delete")
+                .config("retention.ms", "86400000") // 1 day
+                .build();
     }
 }
