@@ -85,6 +85,22 @@
 			<optional>true</optional>
 		</dependency>
 		
+		<!-- HTTP Client for Market Data -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webflux</artifactId>
+		</dependency>
+		
+		<!-- JSON Processing -->
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-annotations</artifactId>
+		</dependency>
+		
 		<!-- Required for @Generated annotation in gRPC -->
 		<dependency>
 			<groupId>javax.annotation</groupId>
@@ -176,6 +192,29 @@
 					</execution>
 				</executions>
 			</plugin>
+
+			<!-- Exec Maven Plugin for C++ Build (DISABLED FOR NOW) -->
+			<!--
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<version>3.1.0</version>
+				<executions>
+					<execution>
+						<id>build-cpp-engine</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>exec</goal>
+						</goals>
+						<configuration>
+							<executable>cmd</executable>
+							<workingDirectory>${project.basedir}</workingDirectory>
+							<commandlineArgs>/c build-cpp.bat</commandlineArgs>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			-->
 		</plugins>
 	</build>
 
