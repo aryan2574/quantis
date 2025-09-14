@@ -38,37 +38,55 @@ services:
     ports:
       - "6379:6379"
 
-  # Optional services (commented out - uncomment if needed)
-  # cassandra:
-  #   image: cassandra:4.1
-  #   environment:
-  #     CASSANDRA_CLUSTER_NAME: QuantisCluster
-  #     CASSANDRA_START_RPC: "true"
-  #   ports:
-  #     - "9042:9042"
+  # ==================== DATA STORAGE SERVICES ====================
+  cassandra:
+    image: cassandra:4.1
+    environment:
+      CASSANDRA_CLUSTER_NAME: QuantisCluster
+      CASSANDRA_START_RPC: "true"
+    ports:
+      - "9042:9042"
+    volumes:
+      - cassandra_data:/var/lib/cassandra
 
-  # elasticsearch:
-  #   image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
-  #   environment:
-  #     - discovery.type=single-node
-  #     - ES_JAVA_OPTS=-Xms512m -Xmx512m
-  #     - xpack.security.enabled=false
-  #     - xpack.security.http.ssl.enabled=false
-  #   ports:
-  #     - "9200:9200"
-  #   volumes:
-  #     - esdata:/usr/share/elasticsearch/data
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - xpack.security.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    healthcheck:
+      test:
+        ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   # ==================== APPLICATION SERVICES (RUN LOCALLY) ====================
   # These services are configured to run locally on your machine
   # Start them manually using: ./mvnw spring-boot:run
   #
-  # order-ingress:     http://localhost:8080
-  # portfolio-service: http://localhost:8082 (HTTP), localhost:9090 (gRPC)
-  # risk-service:      http://localhost:8081
-  # trading-engine:    http://localhost:8083
+  # order-ingress:           http://localhost:8080
+  # portfolio-service:       http://localhost:8082 (HTTP), localhost:9090 (gRPC)
+  # risk-service:            http://localhost:8081
+  # trading-engine:          http://localhost:8083
+  # market-data-service:     http://localhost:8084 (GraphQL + WebSocket + gRPC)
+  # dashboard-gateway:       http://localhost:8085 (GraphQL Gateway)
+  # elasticsearch-writer:   http://localhost:8086 (Elasticsearch Writer Service)
+  # cassandra-writer:       http://localhost:8087 (Cassandra Writer Service)
+  # postgres-writer:         http://localhost:8088 (PostgreSQL Writer Service)
+  # update-service:          http://localhost:8089 (Update Service)
 
 volumes:
   esdata:
+    driver: local
+  cassandra_data:
     driver: local
   # Application service logs are stored locally in services/*/logs/ directories
