@@ -59,8 +59,6 @@ public class LockFreeMarketDataService {
                 1000 / marketDataConfig.getAlphaVantage().getUpdateIntervalMs());
         
         // Start the C++ Market Data Service instead of Java HTTP client
-        // Temporarily disabled to test basic JNI functionality
-        /*
         if (cppEngine.startMarketDataService()) {
             log.info("✅ C++ Market Data Service started successfully");
             running = true;
@@ -69,9 +67,6 @@ public class LockFreeMarketDataService {
             // Fallback to Java implementation
             startMarketDataFeed();
         }
-        */
-        log.info("✅ C++ Market Data Service initialization skipped for testing");
-        running = true;
     }
     
     @PreDestroy
