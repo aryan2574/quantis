@@ -4,7 +4,7 @@
 #include <string>
 #include <memory>
 #include "OrderBook.h"
-#include "CppMarketDataServiceStub.h"  // Use stub instead of real implementation
+#include "CppMarketDataService.h" // Use real implementation
 
 namespace quantis
 {
