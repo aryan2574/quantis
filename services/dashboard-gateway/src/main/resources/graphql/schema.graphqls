@@ -1,0 +1,423 @@
+# ==================== DASHBOARD GRAPHQL SCHEMA ====================
+# Unified GraphQL API for Trading Dashboard
+# Aggregates data from all microservices
+
+scalar DateTime
+scalar BigDecimal
+scalar Long
+
+# ==================== QUERY TYPES ====================
+
+type Query {
+  # Portfolio Management
+  portfolio(userId: String!): Portfolio
+  positions(userId: String!): [Position!]!
+  position(userId: String!, symbol: String!): Position
+  cashBalance(userId: String!): CashBalance
+
+  # Trading History
+  tradingHistory(
+    userId: String!
+    limit: Int
+    startTime: Long
+    endTime: Long
+  ): [TradeRecord!]!
+  orderHistory(userId: String!, limit: Int, status: String): [Order!]!
+  activeOrders(userId: String!): [Order!]!
+
+  # Market Data
+  marketData(symbol: String!): MarketData
+  historicalData(
+    symbol: String!
+    interval: String!
+    startTime: Long
+    endTime: Long
+    limit: Int
+  ): [HistoricalData!]!
+  orderBook(symbol: String!, depth: Int): OrderBook
+  recentTrades(symbol: String!, limit: Int): [Trade!]!
+  marketSummary(symbols: [String!]!): [MarketSummary!]!
+
+  # Analytics & Risk
+  portfolioPerformance(userId: String!, period: String!): PerformanceMetrics
+  riskMetrics(userId: String!): RiskMetrics
+  tradeAnalytics(
+    userId: String!
+    symbol: String
+    period: String!
+  ): TradeAnalytics
+
+  # Dashboard Overview
+  dashboardOverview(userId: String!): DashboardOverview
+}
+
+# ==================== MUTATION TYPES ====================
+
+type Mutation {
+  # Order Management
+  placeOrder(input: PlaceOrderInput!): OrderResponse!
+  cancelOrder(orderId: String!): CancelResponse!
+  modifyOrder(input: ModifyOrderInput!): OrderResponse!
+
+  # Portfolio Operations
+  updateWatchlist(userId: String!, symbols: [String!]!): WatchlistResponse!
+}
+
+# ==================== SUBSCRIPTION TYPES ====================
+
+type Subscription {
+  # Portfolio Updates
+  portfolioUpdates(userId: String!): PortfolioUpdate!
+  positionUpdates(userId: String!): PositionUpdate!
+
+  # Market Data Updates
+  marketDataUpdates(symbols: [String!]!): MarketDataUpdate!
+  tradeUpdates(symbols: [String!]!): TradeUpdate!
+
+  # Order Updates
+  orderUpdates(userId: String!): OrderUpdate!
+
+  # Dashboard Updates
+  dashboardUpdates(userId: String!): DashboardUpdate!
+}
+
+# ==================== PORTFOLIO TYPES ====================
+
+type Portfolio {
+  userId: String!
+  totalValue: BigDecimal!
+  cashBalance: BigDecimal!
+  positionsValue: BigDecimal!
+  unrealizedPnl: BigDecimal!
+  realizedPnl: BigDecimal!
+  currency: String!
+  lastUpdated: DateTime!
+  positions: [Position!]!
+  performance: PerformanceMetrics
+}
+
+type Position {
+  userId: String!
+  symbol: String!
+  quantity: BigDecimal!
+  averagePrice: BigDecimal!
+  currentPrice: BigDecimal!
+  marketValue: BigDecimal!
+  unrealizedPnl: BigDecimal!
+  realizedPnl: BigDecimal!
+  lastUpdated: DateTime!
+  change: BigDecimal!
+  changePercent: BigDecimal!
+}
+
+type CashBalance {
+  userId: String!
+  balance: BigDecimal!
+  currency: String!
+  availableBalance: BigDecimal!
+  pendingBalance: BigDecimal!
+  lastUpdated: DateTime!
+}
+
+# ==================== TRADING TYPES ====================
+
+type TradeRecord {
+  tradeId: String!
+  orderId: String!
+  userId: String!
+  symbol: String!
+  side: String!
+  quantity: BigDecimal!
+  price: BigDecimal!
+  totalValue: BigDecimal!
+  executedAt: DateTime!
+  status: String!
+  commission: BigDecimal
+  counterpartyOrderId: String
+}
+
+type Order {
+  orderId: String!
+  userId: String!
+  symbol: String!
+  side: String!
+  quantity: BigDecimal!
+  price: BigDecimal!
+  orderType: String!
+  timeInForce: String!
+  status: String!
+  filledQuantity: BigDecimal!
+  averagePrice: BigDecimal!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  executedAt: DateTime
+  commission: BigDecimal
+  metadata: String
+}
+
+# ==================== MARKET DATA TYPES ====================
+
+type MarketData {
+  symbol: String!
+  bestBid: BigDecimal!
+  bestAsk: BigDecimal!
+  lastPrice: BigDecimal!
+  spread: BigDecimal!
+  volume: Long!
+  change: BigDecimal!
+  changePercent: BigDecimal!
+  timestamp: DateTime!
+  status: String!
+  high24h: BigDecimal
+  low24h: BigDecimal
+  open24h: BigDecimal
+}
+
+type OrderBook {
+  symbol: String!
+  bids: [PriceLevel!]!
+  asks: [PriceLevel!]!
+  timestamp: DateTime!
+  status: String!
+  spread: BigDecimal!
+  midPrice: BigDecimal!
+}
+
+type PriceLevel {
+  price: BigDecimal!
+  quantity: BigDecimal!
+  orderCount: Int!
+  totalValue: BigDecimal!
+}
+
+type Trade {
+  tradeId: String!
+  symbol: String!
+  side: String!
+  quantity: BigDecimal!
+  price: BigDecimal!
+  timestamp: DateTime!
+  totalValue: BigDecimal!
+}
+
+type HistoricalData {
+  timestamp: DateTime!
+  open: BigDecimal!
+  high: BigDecimal!
+  low: BigDecimal!
+  close: BigDecimal!
+  volume: Long!
+  vwap: BigDecimal
+}
+
+type MarketSummary {
+  symbol: String!
+  lastPrice: BigDecimal!
+  change: BigDecimal!
+  changePercent: BigDecimal!
+  volume: Long!
+  high24h: BigDecimal!
+  low24h: BigDecimal!
+  marketCap: BigDecimal
+}
+
+# ==================== ANALYTICS TYPES ====================
+
+type PerformanceMetrics {
+  userId: String!
+  period: String!
+  totalReturn: BigDecimal!
+  totalReturnPercent: BigDecimal!
+  sharpeRatio: BigDecimal
+  maxDrawdown: BigDecimal
+  volatility: BigDecimal
+  winRate: BigDecimal
+  profitFactor: BigDecimal
+  totalTrades: Int!
+  winningTrades: Int!
+  losingTrades: Int!
+  averageWin: BigDecimal!
+  averageLoss: BigDecimal!
+  largestWin: BigDecimal!
+  largestLoss: BigDecimal!
+  startValue: BigDecimal!
+  endValue: BigDecimal!
+  lastUpdated: DateTime!
+}
+
+type RiskMetrics {
+  userId: String!
+  portfolioValue: BigDecimal!
+  cashBalance: BigDecimal!
+  marginUsed: BigDecimal!
+  marginAvailable: BigDecimal!
+  buyingPower: BigDecimal!
+  dayTradingBuyingPower: BigDecimal!
+  riskScore: BigDecimal!
+  concentrationRisk: BigDecimal!
+  sectorExposure: [SectorExposure!]!
+  positionLimits: [PositionLimit!]!
+  lastUpdated: DateTime!
+}
+
+type SectorExposure {
+  sector: String!
+  percentage: BigDecimal!
+  value: BigDecimal!
+  riskLevel: String!
+}
+
+type PositionLimit {
+  symbol: String!
+  maxPosition: BigDecimal!
+  currentPosition: BigDecimal!
+  limitPercentage: BigDecimal!
+  riskLevel: String!
+}
+
+type TradeAnalytics {
+  userId: String!
+  symbol: String
+  period: String!
+  totalTrades: Int!
+  totalVolume: BigDecimal!
+  totalValue: BigDecimal!
+  averageTradeSize: BigDecimal!
+  largestTrade: BigDecimal!
+  smallestTrade: BigDecimal!
+  buyTrades: Int!
+  sellTrades: Int!
+  buyVolume: BigDecimal!
+  sellVolume: BigDecimal!
+  netPosition: BigDecimal!
+  vwap: BigDecimal!
+  lastTradeAt: DateTime!
+  tradingDays: Int!
+  tradesPerDay: BigDecimal!
+}
+
+# ==================== DASHBOARD TYPES ====================
+
+type DashboardOverview {
+  userId: String!
+  portfolio: Portfolio!
+  watchlist: [MarketData!]!
+  recentTrades: [TradeRecord!]!
+  activeOrders: [Order!]!
+  marketSummary: [MarketSummary!]!
+  performance: PerformanceMetrics!
+  riskMetrics: RiskMetrics!
+  alerts: [Alert!]!
+  lastUpdated: DateTime!
+}
+
+type Alert {
+  id: String!
+  userId: String!
+  type: String!
+  severity: String!
+  title: String!
+  message: String!
+  symbol: String
+  price: BigDecimal
+  timestamp: DateTime!
+  acknowledged: Boolean!
+  actionRequired: Boolean!
+}
+
+# ==================== INPUT TYPES ====================
+
+input PlaceOrderInput {
+  userId: String!
+  symbol: String!
+  side: String!
+  quantity: BigDecimal!
+  price: BigDecimal
+  orderType: String!
+  timeInForce: String!
+  stopPrice: BigDecimal
+  metadata: String
+}
+
+input ModifyOrderInput {
+  orderId: String!
+  userId: String!
+  quantity: BigDecimal
+  price: BigDecimal
+  stopPrice: BigDecimal
+  timeInForce: String
+}
+
+# ==================== RESPONSE TYPES ====================
+
+type OrderResponse {
+  success: Boolean!
+  orderId: String
+  message: String!
+  order: Order
+  errors: [String!]!
+}
+
+type CancelResponse {
+  success: Boolean!
+  message: String!
+  orderId: String!
+  errors: [String!]!
+}
+
+type WatchlistResponse {
+  success: Boolean!
+  message: String!
+  symbols: [String!]!
+  errors: [String!]!
+}
+
+# ==================== UPDATE TYPES ====================
+
+type PortfolioUpdate {
+  userId: String!
+  portfolio: Portfolio!
+  timestamp: DateTime!
+  changes: [PortfolioChange!]!
+}
+
+type PortfolioChange {
+  type: String!
+  symbol: String
+  oldValue: BigDecimal
+  newValue: BigDecimal!
+  change: BigDecimal!
+  changePercent: BigDecimal!
+}
+
+type PositionUpdate {
+  userId: String!
+  position: Position!
+  timestamp: DateTime!
+  change: BigDecimal!
+  changePercent: BigDecimal!
+}
+
+type MarketDataUpdate {
+  symbols: [MarketData!]!
+  timestamp: DateTime!
+}
+
+type TradeUpdate {
+  trades: [Trade!]!
+  timestamp: DateTime!
+}
+
+type OrderUpdate {
+  userId: String!
+  order: Order!
+  timestamp: DateTime!
+  changeType: String!
+}
+
+type DashboardUpdate {
+  userId: String!
+  overview: DashboardOverview!
+  timestamp: DateTime!
+  updateType: String!
+}
