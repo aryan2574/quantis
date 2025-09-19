@@ -1,0 +1,118 @@
+syntax = "proto3";
+
+package com.quantis.market_data;
+
+option java_multiple_files = true;
+option java_package = "com.quantis.market_data.grpc";
+option java_outer_classname = "MarketDataProto";
+
+// Market Data Service for streaming real-time data to clients
+service MarketDataService {
+  // Stream real-time market data for symbols
+  rpc StreamMarketData(StreamMarketDataRequest) returns (stream MarketDataSnapshot);
+  
+  // Stream order book updates
+  rpc StreamOrderBook(StreamOrderBookRequest) returns (stream OrderBookSnapshot);
+  
+  // Stream trade updates
+  rpc StreamTrades(StreamTradesRequest) returns (stream TradeUpdate);
+  
+  // Get historical market data
+  rpc GetHistoricalData(GetHistoricalDataRequest) returns (GetHistoricalDataResponse);
+  
+  // Subscribe to specific symbols
+  rpc SubscribeToSymbols(SubscribeRequest) returns (SubscribeResponse);
+}
+
+// Request/Response Messages
+message StreamMarketDataRequest {
+  repeated string symbols = 1;
+  string client_id = 2;
+  int32 update_frequency_ms = 3;  // Minimum update frequency
+}
+
+message MarketDataSnapshot {
+  string symbol = 1;
+  double best_bid = 2;
+  double best_ask = 3;
+  double last_price = 4;
+  double spread = 5;
+  int64 volume = 6;
+  int64 timestamp = 7;
+  string market_session = 8;
+  double high_price = 9;
+  double low_price = 10;
+  double open_price = 11;
+}
+
+message StreamOrderBookRequest {
+  repeated string symbols = 1;
+  string client_id = 2;
+  int32 depth = 3;  // Number of price levels to include
+}
+
+message OrderBookSnapshot {
+  string symbol = 1;
+  repeated PriceLevel bids = 2;
+  repeated PriceLevel asks = 3;
+  int64 timestamp = 4;
+  int64 sequence_number = 5;
+}
+
+message PriceLevel {
+  double price = 1;
+  int64 quantity = 2;
+  int32 order_count = 3;
+}
+
+message StreamTradesRequest {
+  repeated string symbols = 1;
+  string client_id = 2;
+}
+
+message TradeUpdate {
+  string trade_id = 1;
+  string symbol = 2;
+  string side = 3;
+  int64 quantity = 4;
+  double price = 5;
+  double total_value = 6;
+  int64 timestamp = 7;
+  string buyer_id = 8;
+  string seller_id = 9;
+}
+
+message GetHistoricalDataRequest {
+  string symbol = 1;
+  int64 start_time = 2;
+  int64 end_time = 3;
+  string interval = 4;  // 1m, 5m, 1h, 1d
+  int32 limit = 5;
+}
+
+message GetHistoricalDataResponse {
+  string symbol = 1;
+  string interval = 2;
+  repeated HistoricalDataPoint data_points = 3;
+}
+
+message HistoricalDataPoint {
+  int64 timestamp = 1;
+  double open = 2;
+  double high = 3;
+  double low = 4;
+  double close = 5;
+  int64 volume = 6;
+}
+
+message SubscribeRequest {
+  string client_id = 1;
+  repeated string symbols = 2;
+  repeated string data_types = 3;  // market_data, order_book, trades
+}
+
+message SubscribeResponse {
+  string subscription_id = 1;
+  string status = 2;
+  string message = 3;
+}

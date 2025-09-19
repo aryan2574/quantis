@@ -1,0 +1,95 @@
+# ==================== DOCKER CONFIGURATION ====================
+# Configuration for running in Docker containers
+# This overrides localhost references with environment variables
+
+spring:
+  application:
+    name: trading-engine
+
+  # ==================== KAFKA CONFIGURATION ====================
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: trading-engine-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      enable-auto-commit: false
+      max-poll-records: 100
+      session-timeout-ms: 30000
+      heartbeat-interval-ms: 3000
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      enable-idempotence: true
+      acks: all
+      retries: 3
+      batch-size: 16384
+      linger-ms: 1
+      buffer-memory: 33554432
+      compression-type: snappy
+
+# ==================== SERVER CONFIGURATION ====================
+server:
+  port: ${SERVER_PORT:8083}
+  servlet:
+    context-path: /
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+
+# ==================== gRPC CLIENT CONFIGURATION ====================
+grpc:
+  client:
+    portfolio-service:
+      address: "static://${PORTFOLIO_SERVICE_HOST:portfolio-service}:${PORTFOLIO_SERVICE_PORT:9090}"
+      negotiation-type: plaintext
+      enable-keep-alive: true
+      keep-alive-without-calls: true
+      keep-alive-time: 30s
+      keep-alive-timeout: 5s
+      max-inbound-message-size: 4MB
+
+# ==================== MANAGEMENT ENDPOINTS ====================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      show-components: always
+    metrics:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# ==================== LOGGING CONFIGURATION ====================
+logging:
+  level:
+    root: INFO
+    com.quantis.trading_engine: DEBUG
+    org.springframework.kafka: INFO
+    org.apache.kafka: INFO
+    io.grpc: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: /app/logs/trading-engine.log
+    max-size: 10MB
+    max-history: 30
+
+# ==================== TRADING ENGINE SPECIFIC ====================
+trading:
+  engine:
+    execution:
+      latency-simulation: ${EXECUTION_LATENCY:10} # milliseconds
+      success-rate: ${SUCCESS_RATE:0.95} # 95% success rate
+      market-volatility: ${MARKET_VOLATILITY:0.005} # 0.5% volatility
+    portfolio:
+      update-timeout: ${PORTFOLIO_UPDATE_TIMEOUT:5000} # milliseconds
+      retry-attempts: ${PORTFOLIO_RETRY_ATTEMPTS:3}

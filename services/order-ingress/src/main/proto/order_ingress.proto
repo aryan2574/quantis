@@ -1,0 +1,122 @@
+syntax = "proto3";
+
+package com.quantis.order_ingress;
+
+option java_multiple_files = true;
+option java_package = "com.quantis.order_ingress.grpc";
+option java_outer_classname = "OrderIngressProto";
+
+// Order Ingress Service for algo clients
+service OrderIngressService {
+  // Place a new order
+  rpc PlaceOrder(PlaceOrderRequest) returns (PlaceOrderResponse);
+  
+  // Cancel an existing order
+  rpc CancelOrder(CancelOrderRequest) returns (CancelOrderResponse);
+  
+  // Get order status
+  rpc GetOrderStatus(GetOrderStatusRequest) returns (GetOrderStatusResponse);
+  
+  // Stream order updates (for real-time status)
+  rpc StreamOrderUpdates(StreamOrderUpdatesRequest) returns (stream OrderUpdate);
+  
+  // Bulk order placement (for algo strategies)
+  rpc PlaceBulkOrders(PlaceBulkOrdersRequest) returns (PlaceBulkOrdersResponse);
+}
+
+// Request/Response Messages
+message PlaceOrderRequest {
+  string user_id = 1;
+  string symbol = 2;
+  string side = 3;  // BUY or SELL
+  int64 quantity = 4;
+  double price = 5;
+  string order_type = 6;  // MARKET, LIMIT, STOP, STOP_LIMIT
+  string time_in_force = 7;  // DAY, GTC, IOC, FOK
+  string client_order_id = 8;  // Optional client-provided ID
+  map<string, string> metadata = 9;  // Additional order metadata
+}
+
+message PlaceOrderResponse {
+  string order_id = 1;
+  string status = 2;  // ACCEPTED, REJECTED, PENDING
+  string message = 3;
+  int64 timestamp = 4;
+}
+
+message CancelOrderRequest {
+  string order_id = 1;
+  string user_id = 2;
+}
+
+message CancelOrderResponse {
+  string order_id = 1;
+  string status = 2;  // CANCELLED, NOT_FOUND, FAILED
+  string message = 3;
+  int64 timestamp = 4;
+}
+
+message GetOrderStatusRequest {
+  string order_id = 1;
+  string user_id = 2;
+}
+
+message GetOrderStatusResponse {
+  string order_id = 1;
+  string status = 2;  // PENDING, EXECUTED, PARTIALLY_EXECUTED, CANCELLED, REJECTED
+  string symbol = 3;
+  string side = 4;
+  int64 quantity = 5;
+  double price = 6;
+  int64 filled_quantity = 7;
+  double average_price = 8;
+  int64 timestamp = 9;
+  int64 last_updated = 10;
+}
+
+message StreamOrderUpdatesRequest {
+  string user_id = 1;
+  repeated string symbols = 2;  // Filter by symbols (empty = all)
+}
+
+message OrderUpdate {
+  string order_id = 1;
+  string user_id = 2;
+  string status = 3;
+  string symbol = 4;
+  string side = 5;
+  int64 quantity = 6;
+  double price = 7;
+  int64 filled_quantity = 8;
+  double average_price = 9;
+  int64 timestamp = 10;
+  string update_type = 11;  // STATUS_CHANGE, FILL, CANCEL, etc.
+}
+
+message PlaceBulkOrdersRequest {
+  string user_id = 1;
+  repeated OrderRequest orders = 2;
+}
+
+message OrderRequest {
+  string symbol = 1;
+  string side = 2;
+  int64 quantity = 3;
+  double price = 4;
+  string order_type = 5;
+  string time_in_force = 6;
+  string client_order_id = 7;
+  map<string, string> metadata = 8;
+}
+
+message PlaceBulkOrdersResponse {
+  repeated OrderResult results = 1;
+  int64 timestamp = 2;
+}
+
+message OrderResult {
+  string client_order_id = 1;
+  string order_id = 2;
+  string status = 3;
+  string message = 4;
+}

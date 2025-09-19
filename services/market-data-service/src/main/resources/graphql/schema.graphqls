@@ -1,0 +1,83 @@
+scalar Long
+
+type Query {
+  marketData(symbol: String!): MarketData
+  historicalData(
+    symbol: String!
+    interval: String!
+    startTime: Long
+    endTime: Long
+    limit: Int
+  ): [HistoricalData!]!
+  orderBook(symbol: String!, depth: Int): OrderBook
+  recentTrades(symbol: String!, limit: Int): [Trade!]!
+  marketSummary(symbols: [String!]!): [MarketSummary!]!
+}
+
+type Subscription {
+  marketDataUpdates(symbols: [String!]!): MarketDataUpdate!
+  tradeUpdates(symbols: [String!]!): TradeUpdate!
+}
+
+type MarketData {
+  symbol: String!
+  bestBid: Float!
+  bestAsk: Float!
+  lastPrice: Float!
+  spread: Float!
+  volume: Long!
+  change: Float!
+  changePercent: Float!
+  timestamp: Long!
+  status: String!
+}
+
+type OrderBook {
+  symbol: String!
+  bids: [PriceLevel!]!
+  asks: [PriceLevel!]!
+  timestamp: Long!
+  status: String!
+}
+
+type PriceLevel {
+  price: Float!
+  quantity: Long!
+  orderCount: Int!
+}
+
+type Trade {
+  tradeId: String!
+  symbol: String!
+  side: String!
+  quantity: Long!
+  price: Float!
+  timestamp: Long!
+}
+
+type HistoricalData {
+  timestamp: Long!
+  open: Float!
+  high: Float!
+  low: Float!
+  close: Float!
+  volume: Long!
+}
+
+type MarketSummary {
+  symbol: String!
+  lastPrice: Float!
+  change: Float!
+  changePercent: Float!
+  volume: Long!
+}
+
+type MarketDataUpdate {
+  symbols: [MarketData!]!
+  timestamp: Long!
+}
+
+type TradeUpdate {
+  trades: [Trade!]!
+  timestamp: Long!
+}
