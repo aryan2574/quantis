@@ -1,0 +1,115 @@
+# API Configuration
+# This file contains API configuration without sensitive keys
+
+api-config:
+  alpha-vantage:
+    base-url: "https://www.alphavantage.co"
+    timeout: 10000 # 10 seconds
+    retry-attempts: 3
+    retry-delay: 1000 # 1 second
+    endpoints:
+      digital-currency: "/query?function=DIGITAL_CURRENCY_INTRADAY"
+      forex: "/query?function=FX_INTRADAY"
+      time-series: "/query?function=TIME_SERIES_INTRADAY"
+      listing-status: "/query?function=LISTING_STATUS"
+      currency-exchange-rate: "/query?function=CURRENCY_EXCHANGE_RATE"
+
+    rate-limits:
+      free-tier:
+        calls-per-minute: 5
+        calls-per-day: 500
+      premium-tier:
+        calls-per-minute: 1200
+        calls-per-day: 1000000
+
+    supported-intervals:
+      - "1min"
+      - "5min"
+      - "15min"
+      - "30min"
+      - "60min"
+
+  exchange-rate:
+    base-url: "https://v6.exchangerate-api.com/v6"
+    timeout: 10000 # 10 seconds
+    retry-attempts: 3
+    retry-delay: 1000 # 1 second
+    endpoints:
+      latest: "/latest"
+      historical: "/history"
+      convert: "/pair"
+      supported-currencies: "/codes"
+
+    rate-limits:
+      free-tier:
+        calls-per-minute: 1000
+        calls-per-day: 100000
+      premium-tier:
+        calls-per-minute: 10000
+        calls-per-day: 1000000
+
+  polygon:
+    base-url: "https://api.polygon.io"
+    timeout: 10000 # 10 seconds
+    retry-attempts: 3
+    retry-delay: 1000 # 1 second
+    endpoints:
+      stocks: "/v2/aggs/ticker"
+      forex: "/v1/last/forex"
+      crypto: "/v1/last/crypto"
+      options: "/v3/reference/options/contracts"
+      tickers: "/v3/reference/tickers"
+      market-status: "/v1/marketstatus/now"
+
+    rate-limits:
+      free-tier:
+        calls-per-minute: 1000
+        calls-per-day: 100000
+      premium-tier:
+        calls-per-minute: 10000
+        calls-per-day: 1000000
+
+# Market Data Service Configuration
+market-data-service:
+  port: 8082
+  context-path: "/api"
+
+  caching:
+    enabled: true
+    provider: "redis"
+    default-ttl: 300 # 5 minutes
+
+  monitoring:
+    enabled: true
+    metrics-endpoint: "/actuator/metrics"
+    health-endpoint: "/actuator/health"
+
+  logging:
+    level: "INFO"
+    log-api-calls: true
+    log-rate-limits: true
+
+# Symbol Management Configuration
+symbol-management:
+  auto-refresh: true
+  refresh-schedule: "0 0 1 * * ?" # Daily at 1 AM
+  batch-size: 50
+  max-symbols-per-request: 100
+
+  validation:
+    enabled: true
+    check-symbol-format: true
+    check-market-hours: true
+
+# Error Handling Configuration
+error-handling:
+  api-timeout: 10000 # 10 seconds
+  connection-timeout: 5000 # 5 seconds
+  max-retries: 3
+  retry-delay: 1000 # 1 second
+  exponential-backoff: true
+
+  fallback:
+    enabled: true
+    use-cached-data: true
+    cache-fallback-ttl: 3600 # 1 hour

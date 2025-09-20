@@ -1,0 +1,151 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: quantis-trading-cluster
+  region: us-west-2
+  version: "1.28"
+
+# Node Groups
+nodeGroups:
+  # General purpose nodes for application services
+  - name: quantis-general
+    instanceType: t3.large
+    desiredCapacity: 3
+    minSize: 2
+    maxSize: 10
+    volumeSize: 50
+    volumeType: gp3
+    ssh:
+      allow: true
+      publicKeyName: quantis-keypair
+    labels:
+      node-type: general
+      workload: application
+    taints:
+      - key: node-type
+        value: general
+        effect: NoSchedule
+    iam:
+      withAddonPolicies:
+        imageBuilder: true
+        autoScaler: true
+        externalDNS: true
+        certManager: true
+        appMesh: true
+        ebs: true
+        fsx: true
+        efs: true
+        awsLoadBalancerController: true
+
+  # High-performance nodes for trading engine
+  - name: quantis-trading
+    instanceType: c5.2xlarge
+    desiredCapacity: 2
+    minSize: 1
+    maxSize: 5
+    volumeSize: 100
+    volumeType: gp3
+    ssh:
+      allow: true
+      publicKeyName: quantis-keypair
+    labels:
+      node-type: trading
+      workload: high-performance
+    taints:
+      - key: node-type
+        value: trading
+        effect: NoSchedule
+    iam:
+      withAddonPolicies:
+        imageBuilder: true
+        autoScaler: true
+        externalDNS: true
+        certManager: true
+        appMesh: true
+        ebs: true
+        fsx: true
+        efs: true
+        awsLoadBalancerController: true
+
+  # Database nodes for PostgreSQL/Cassandra
+  - name: quantis-database
+    instanceType: r5.xlarge
+    desiredCapacity: 2
+    minSize: 1
+    maxSize: 3
+    volumeSize: 200
+    volumeType: gp3
+    ssh:
+      allow: true
+      publicKeyName: quantis-keypair
+    labels:
+      node-type: database
+      workload: database
+    taints:
+      - key: node-type
+        value: database
+        effect: NoSchedule
+    iam:
+      withAddonPolicies:
+        imageBuilder: true
+        autoScaler: true
+        externalDNS: true
+        certManager: true
+        appMesh: true
+        ebs: true
+        fsx: true
+        efs: true
+        awsLoadBalancerController: true
+
+# Add-ons
+addons:
+  - name: vpc-cni
+    version: latest
+  - name: coredns
+    version: latest
+  - name: kube-proxy
+    version: latest
+  - name: aws-ebs-csi-driver
+    version: latest
+  - name: aws-efs-csi-driver
+    version: latest
+
+# CloudWatch logging
+cloudWatch:
+  clusterLogging:
+    enableTypes: ["*"]
+    logRetentionInDays: 7
+
+# VPC configuration
+vpc:
+  cidr: "10.0.0.0/16"
+  subnets:
+    public:
+      us-west-2a: { cidr: "10.0.0.0/24" }
+      us-west-2b: { cidr: "10.0.1.0/24" }
+      us-west-2c: { cidr: "10.0.2.0/24" }
+    private:
+      us-west-2a: { cidr: "10.0.10.0/24" }
+      us-west-2b: { cidr: "10.0.11.0/24" }
+      us-west-2c: { cidr: "10.0.12.0/24" }
+
+# IAM configuration
+iam:
+  withOIDC: true
+  serviceAccounts:
+    - metadata:
+        name: aws-load-balancer-controller
+        namespace: kube-system
+      attachPolicyARNs:
+        - arn:aws:iam::ACCOUNT_ID:policy/AWSLoadBalancerControllerIAMPolicy
+    - metadata:
+        name: cluster-autoscaler
+        namespace: kube-system
+      attachPolicyARNs:
+        - arn:aws:iam::ACCOUNT_ID:policy/ClusterAutoscalerPolicy
+    - metadata:
+        name: quantis-trading-sa
+        namespace: quantis-trading
+      attachPolicyARNs:
+        - arn:aws:iam::ACCOUNT_ID:policy/QuantisTradingPolicy

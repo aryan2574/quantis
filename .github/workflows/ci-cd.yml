@@ -1,0 +1,167 @@
+name: Quantis CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # ==================== BUILD & TEST ====================
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          [
+            auth-service,
+            market-data-service,
+            order-ingress,
+            portfolio-service,
+            risk-service,
+            trading-engine,
+            update-service,
+            dashboard-gateway,
+            cassandra-writer-service,
+            elasticsearch-writer-service,
+            postgres-writer-service,
+          ]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Build and test ${{ matrix.service }}
+        run: |
+          cd services/${{ matrix.service }}
+          ./mvnw clean package
+
+      - name: Run tests
+        run: |
+          cd services/${{ matrix.service }}
+          ./mvnw test
+
+      - name: Code quality check
+        run: |
+          cd services/${{ matrix.service }}
+          ./mvnw sonar:sonar -Dsonar.projectKey=${{ matrix.service }}
+
+  # ==================== FRONTEND BUILD ====================
+  build-frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: services/trader-dashboard/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd services/trader-dashboard
+          npm ci
+
+      - name: Build frontend
+        run: |
+          cd services/trader-dashboard
+          npm run build
+
+      - name: Run tests
+        run: |
+          cd services/trader-dashboard
+          npm test
+
+  # ==================== DOCKER BUILD ====================
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: [build-and-test, build-frontend]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker images
+        run: |
+          # Build all services
+          for service in auth-service market-data-service order-ingress portfolio-service risk-service trading-engine update-service dashboard-gateway cassandra-writer-service elasticsearch-writer-service postgres-writer-service; do
+            docker build -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/$service:latest services/$service/
+            docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/$service:latest
+          done
+
+          # Build frontend
+          docker build -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/trader-dashboard:latest services/trader-dashboard/
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/trader-dashboard:latest
+
+  # ==================== DEPLOYMENT ====================
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: docker-build
+    if: github.ref == 'refs/heads/develop'
+    environment: staging
+
+    steps:
+      - name: Deploy to staging
+        run: |
+          echo "Deploying to staging environment..."
+          # Add your staging deployment commands here
+
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: docker-build
+    if: github.ref == 'refs/heads/main'
+    environment: production
+
+    steps:
+      - name: Deploy to production
+        run: |
+          echo "Deploying to production environment..."
+          # Add your production deployment commands here
+
+  # ==================== NOTIFICATIONS ====================
+  notify:
+    runs-on: ubuntu-latest
+    needs: [deploy-staging, deploy-production]
+    if: always()
+
+    steps:
+      - name: Notify on success
+        if: ${{ needs.deploy-staging.result == 'success' || needs.deploy-production.result == 'success' }}
+        run: |
+          echo "✅ Deployment successful!"
+
+      - name: Notify on failure
+        if: ${{ needs.deploy-staging.result == 'failure' || needs.deploy-production.result == 'failure' }}
+        run: |
+          echo "❌ Deployment failed!"
