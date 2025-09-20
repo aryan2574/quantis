@@ -1,0 +1,84 @@
+# ==================== JENKINS PLUGINS FOR QUANTIS ====================
+# Essential plugins for CI/CD pipeline
+
+# Core Plugins
+workflow-aggregator
+pipeline-stage-view
+build-timeout
+credentials-binding
+timestamper
+ws-cleanup
+ant
+gradle
+
+# Git Integration
+git
+github
+github-branch-source
+github-pullrequest
+
+# Docker Integration
+docker-plugin
+docker-workflow
+docker-commons
+
+# Build Tools
+maven-plugin
+nodejs
+
+# Testing & Quality
+junit
+cobertura
+sonar
+jacoco
+pmd
+checkstyle
+findbugs
+
+# Notifications
+email-ext
+slack
+telegram-notifications
+
+# UI & Visualization
+blueocean
+build-pipeline-plugin
+buildgraph-view
+dashboard-view
+
+# Security
+matrix-auth
+role-strategy
+credentials
+
+# Utilities
+envinject
+parameterized-trigger
+copyartifact
+build-trigger-badge
+build-name-setter
+
+# Monitoring
+monitoring
+prometheus
+grafana
+
+# Deployment
+deploy
+deployit-plugin
+publish-over-ssh
+ssh-slaves
+
+# Database
+database
+postgresql-api
+
+# Cloud & Container
+kubernetes
+openshift-client
+cloudbees-docker-commons
+
+# Analytics
+build-metrics
+test-results-analyzer
+performance

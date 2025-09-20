@@ -1,0 +1,287 @@
+pipeline {
+    agent any
+    
+    environment {
+        DOCKER_REGISTRY = 'localhost:5000'
+        PROJECT_NAME = 'quantis'
+        MAVEN_OPTS = '-Xmx1024m -Xms512m'
+        NODE_VERSION = '18'
+        JAVA_VERSION = '21'
+    }
+    
+    options {
+        timeout(time: 30, unit: 'MINUTES')
+        timestamps()
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        skipDefaultCheckout()
+    }
+    
+    stages {
+        // ==================== CHECKOUT ====================
+        stage('Checkout') {
+            steps {
+                checkout scm
+                script {
+                    env.GIT_COMMIT_SHORT = sh(
+                        script: "git rev-parse --short HEAD",
+                        returnStdout: true
+                    ).trim()
+                }
+            }
+        }
+        
+        // ==================== BUILD JAVA SERVICES ====================
+        stage('Build Java Services') {
+            parallel {
+                stage('Auth Service') {
+                    steps {
+                        buildJavaService('auth-service')
+                    }
+                    post {
+                        always {
+                            publishTestResults testResultsPattern: 'services/auth-service/target/surefire-reports/*.xml'
+                        }
+                    }
+                }
+                stage('Market Data Service') {
+                    steps {
+                        buildJavaService('market-data-service')
+                    }
+                    post {
+                        always {
+                            publishTestResults testResultsPattern: 'services/market-data-service/target/surefire-reports/*.xml'
+                        }
+                    }
+                }
+                stage('Order Ingress') {
+                    steps {
+                        buildJavaService('order-ingress')
+                    }
+                    post {
+                        always {
+                            publishTestResults testResultsPattern: 'services/order-ingress/target/surefire-reports/*.xml'
+                        }
+                    }
+                }
+                stage('Portfolio Service') {
+                    steps {
+                        buildJavaService('portfolio-service')
+                    }
+                    post {
+                        always {
+                            publishTestResults testResultsPattern: 'services/portfolio-service/target/surefire-reports/*.xml'
+                        }
+                    }
+                }
+                stage('Risk Service') {
+                    steps {
+                        buildJavaService('risk-service')
+                    }
+                    post {
+                        always {
+                            publishTestResults testResultsPattern: 'services/risk-service/target/surefire-reports/*.xml'
+                        }
+                    }
+                }
+                stage('Trading Engine') {
+                    steps {
+                        buildJavaService('trading-engine')
+                    }
+                    post {
+                        always {
+                            publishTestResults testResultsPattern: 'services/trading-engine/target/surefire-reports/*.xml'
+                        }
+                    }
+                }
+                stage('Dashboard Gateway') {
+                    steps {
+                        buildJavaService('dashboard-gateway')
+                    }
+                    post {
+                        always {
+                            publishTestResults testResultsPattern: 'services/dashboard-gateway/target/surefire-reports/*.xml'
+                        }
+                    }
+                }
+            }
+        }
+        
+        // ==================== BUILD FRONTEND ====================
+        stage('Build Frontend') {
+            steps {
+                dir('services/trader-dashboard') {
+                    sh 'npm ci'
+                    sh 'npm run build'
+                    sh 'npm test'
+                }
+            }
+        }
+        
+        // ==================== BUILD DATABASE SERVICES ====================
+        stage('Build Database Services') {
+            parallel {
+                stage('Cassandra Writer') {
+                    steps {
+                        buildService('cassandra-writer-service')
+                    }
+                }
+                stage('Elasticsearch Writer') {
+                    steps {
+                        buildService('elasticsearch-writer-service')
+                    }
+                }
+                stage('Postgres Writer') {
+                    steps {
+                        buildService('postgres-writer-service')
+                    }
+                }
+            }
+        }
+        
+        // ==================== DOCKER BUILD ====================
+        stage('Docker Build') {
+            steps {
+                script {
+                    def services = [
+                        'auth-service',
+                        'market-data-service', 
+                        'order-ingress',
+                        'portfolio-service',
+                        'risk-service',
+                        'trading-engine',
+                        'update-service',
+                        'dashboard-gateway',
+                        'cassandra-writer-service',
+                        'elasticsearch-writer-service',
+                        'postgres-writer-service',
+                        'trader-dashboard'
+                    ]
+                    
+                    services.each { service ->
+                        docker.build("${DOCKER_REGISTRY}/${PROJECT_NAME}/${service}:${env.GIT_COMMIT_SHORT}", "services/${service}")
+                        docker.build("${DOCKER_REGISTRY}/${PROJECT_NAME}/${service}:latest", "services/${service}")
+                    }
+                }
+            }
+        }
+        
+        // ==================== INTEGRATION TESTS ====================
+        stage('Integration Tests') {
+            steps {
+                sh '''
+                    cd infra
+                    docker-compose -f docker-compose.yml -f docker-compose.test.yml up -d
+                    sleep 60
+                    ./run-integration-tests.sh
+                    docker-compose down
+                '''
+            }
+        }
+        
+        // ==================== DEPLOYMENT ====================
+        stage('Deploy') {
+            when {
+                branch 'main'
+            }
+            steps {
+                script {
+                    if (env.BRANCH_NAME == 'main') {
+                        deployToProduction()
+                    } else if (env.BRANCH_NAME == 'develop') {
+                        deployToStaging()
+                    }
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            // Clean up
+            sh 'docker system prune -f'
+        }
+        success {
+            // Notify success
+            emailext (
+                subject: "✅ Quantis Build Success: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
+                body: "Build successful for commit ${env.GIT_COMMIT_SHORT}",
+                to: "${env.CHANGE_AUTHOR_EMAIL}"
+            )
+        }
+        failure {
+            // Notify failure
+            emailext (
+                subject: "❌ Quantis Build Failed: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
+                body: "Build failed for commit ${env.GIT_COMMIT_SHORT}",
+                to: "${env.CHANGE_AUTHOR_EMAIL}"
+            )
+        }
+    }
+}
+
+// ==================== HELPER FUNCTIONS ====================
+
+def buildJavaService(serviceName) {
+    dir("services/${serviceName}") {
+        try {
+            echo "🔨 Building ${serviceName}..."
+            
+            // Clean and compile
+            sh './mvnw clean compile'
+            
+            // Run tests
+            sh './mvnw test'
+            
+            // Package application
+            sh './mvnw package -DskipTests'
+            
+            // Code quality check (if SonarQube is configured)
+            // sh './mvnw sonar:sonar'
+            
+            echo "✅ ${serviceName} built successfully!"
+            
+        } catch (Exception e) {
+            echo "❌ Failed to build ${serviceName}: ${e.getMessage()}"
+            throw e
+        }
+    }
+}
+
+def buildFrontendService() {
+    dir('services/trader-dashboard') {
+        try {
+            echo "🔨 Building frontend..."
+            
+            // Install dependencies
+            sh 'npm ci'
+            
+            // Run tests
+            sh 'npm test -- --coverage --watchAll=false'
+            
+            // Build application
+            sh 'npm run build'
+            
+            echo "✅ Frontend built successfully!"
+            
+        } catch (Exception e) {
+            echo "❌ Failed to build frontend: ${e.getMessage()}"
+            throw e
+        }
+    }
+}
+
+def deployToStaging() {
+    sh '''
+        echo "Deploying to staging..."
+        cd infra
+        docker-compose -f docker-compose.yml -f docker-compose.staging.yml up -d
+    '''
+}
+
+def deployToProduction() {
+    sh '''
+        echo "Deploying to production..."
+        cd infra
+        docker-compose -f docker-compose.yml -f docker-compose.production.yml up -d
+    '''
+}
