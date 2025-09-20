@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: quantis-config
+  namespace: quantis-trading
+data:
+  # Database Configuration
+  POSTGRES_HOST: "postgres-service"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "quantisdb"
+
+  # Redis Configuration
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+
+  # Kafka Configuration
+  KAFKA_BOOTSTRAP_SERVERS: "kafka-service:9092"
+
+  # Cassandra Configuration
+  CASSANDRA_CONTACT_POINTS: "cassandra-service"
+  CASSANDRA_PORT: "9042"
+  CASSANDRA_KEYSPACE: "quantis_trading"
+
+  # Elasticsearch Configuration
+  ELASTICSEARCH_HOST: "elasticsearch-service"
+  ELASTICSEARCH_PORT: "9200"
+
+  # Application Configuration
+  SPRING_PROFILES_ACTIVE: "kubernetes"
+  LOG_LEVEL: "INFO"
+
+  # Trading Configuration
+  MAX_ORDER_SIZE: "1000000"
+  MIN_ORDER_SIZE: "0.01"
+  TRADING_HOURS_START: "09:00"
+  TRADING_HOURS_END: "16:00"

@@ -1,0 +1,154 @@
+# Network Policies
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: quantis-network-policy
+  namespace: quantis-trading
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: quantis-trading
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: quantis-trading
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 53
+        - protocol: UDP
+          port: 53
+---
+# Pod Security Policy
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: quantis-psp
+spec:
+  privileged: false
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities:
+    - ALL
+  volumes:
+    - "configMap"
+    - "emptyDir"
+    - "projected"
+    - "secret"
+    - "downwardAPI"
+    - "persistentVolumeClaim"
+  runAsUser:
+    rule: "MustRunAsNonRoot"
+  seLinux:
+    rule: "RunAsAny"
+  fsGroup:
+    rule: "RunAsAny"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: quantis-psp-user
+rules:
+  - apiGroups: ["policy"]
+    resources: ["podsecuritypolicies"]
+    verbs: ["use"]
+    resourceNames:
+      - quantis-psp
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: quantis-psp-binding
+roleRef:
+  kind: ClusterRole
+  name: quantis-psp-user
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: quantis-trading
+---
+# RBAC for Quantis services
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: quantis-trading-sa
+  namespace: quantis-trading
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: quantis-trading
+  name: quantis-role
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "configmaps", "secrets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: quantis-role-binding
+  namespace: quantis-trading
+subjects:
+  - kind: ServiceAccount
+    name: quantis-trading-sa
+    namespace: quantis-trading
+roleRef:
+  kind: Role
+  name: quantis-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# Resource Quotas
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: quantis-quota
+  namespace: quantis-trading
+spec:
+  hard:
+    requests.cpu: "10"
+    requests.memory: 20Gi
+    limits.cpu: "20"
+    limits.memory: 40Gi
+    pods: "50"
+    services: "20"
+    persistentvolumeclaims: "10"
+---
+# Limit Ranges
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: quantis-limits
+  namespace: quantis-trading
+spec:
+  limits:
+    - default:
+        cpu: 1000m
+        memory: 2Gi
+      defaultRequest:
+        cpu: 200m
+        memory: 512Mi
+      type: Container
+    - max:
+        cpu: 4000m
+        memory: 8Gi
+      min:
+        cpu: 100m
+        memory: 128Mi
+      type: Container
