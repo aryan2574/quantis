@@ -168,3 +168,4 @@ Icon?
 *.bak
 *.backup
 *.old
+k8s/secrets.yaml
