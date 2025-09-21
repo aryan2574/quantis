@@ -3,6 +3,8 @@ package com.quantis.risk_service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.quantis.risk_service.dto.OrderDto;
 import com.quantis.risk_service.client.PortfolioClient;
+import com.quantis.risk_service.client.PortfolioValue;
+import com.quantis.risk_service.client.PositionInfo;
 import com.quantis.risk_service.repository.BlacklistRepository;
 import com.quantis.risk_service.repository.UserRiskLimitsRepository;
 import com.quantis.risk_service.OrderProducer;
@@ -98,8 +100,8 @@ public class RiskEngine {
         }
 
         // 4. Get portfolio data via gRPC
-        PortfolioClient.PortfolioValue portfolio = portfolioClient.getPortfolioValue(order.getUserId());
-        PortfolioClient.PositionInfo position = portfolioClient.getPosition(order.getUserId(), order.getSymbol());
+        PortfolioValue portfolio = portfolioClient.getPortfolioValue(order.getUserId());
+        PositionInfo position = portfolioClient.getPosition(order.getUserId(), order.getSymbol());
         
         // 5. Cash balance check for BUY orders
         double orderValue = order.getPrice() * order.getQuantity();
