@@ -1,0 +1,65 @@
+{
+  "name": "quantis-trader-dashboard",
+  "version": "1.0.0",
+  "description": "Professional Trading Dashboard for Quantis Platform",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@apollo/client": "^3.8.7",
+    "@radix-ui/react-alert-dialog": "^1.0.5",
+    "@radix-ui/react-dialog": "^1.0.5",
+    "@radix-ui/react-dropdown-menu": "^2.0.6",
+    "@radix-ui/react-label": "^2.0.2",
+    "@radix-ui/react-select": "^2.0.0",
+    "@radix-ui/react-slot": "^1.0.2",
+    "@radix-ui/react-tabs": "^1.0.4",
+    "@radix-ui/react-toast": "^1.1.5",
+    "@tanstack/react-query": "^5.8.4",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.0.0",
+    "graphql": "^16.8.1",
+    "graphql-ws": "^5.14.2",
+    "lucide-react": "^0.292.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.18.0",
+    "recharts": "^2.8.0",
+    "socket.io-client": "^4.7.4",
+    "tailwind-merge": "^2.0.0",
+    "tailwindcss-animate": "^1.0.7",
+    "zustand": "^4.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8.10",
+    "@types/react": "^18.2.37",
+    "@types/react-dom": "^18.2.15",
+    "@vitejs/plugin-react": "^4.1.1",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.31",
+    "tailwindcss": "^3.3.5",
+    "typescript": "^5.2.2",
+    "vite": "^4.5.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview",
+    "build-wasm": "scripts/build-wasm.bat",
+    "install-emscripten": "scripts/install-emscripten.bat",
+    "build-wasm-unix": "scripts/build-wasm.sh",
+    "install-emscripten-unix": "scripts/install-emscripten.sh"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
