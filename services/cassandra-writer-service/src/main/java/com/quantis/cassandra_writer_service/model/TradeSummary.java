@@ -20,7 +20,7 @@ import java.time.Instant;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@Builder(toBuilder = true)
 @Table("trade_summaries")
 public class TradeSummary {
     

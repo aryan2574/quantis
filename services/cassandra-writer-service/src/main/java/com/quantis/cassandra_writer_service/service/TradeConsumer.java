@@ -71,7 +71,7 @@ public class TradeConsumer {
             TradeEvent tradeEvent = convertToTradeEvent(tradeMessage, partition, offset);
             
             // Write to Cassandra
-            tradeEventService.saveTradeEvent(tradeEvent);
+            tradeEventService.writeTradeEvent(tradeEvent);
             
             // Update daily summary
             tradeSummaryService.updateDailySummary(tradeEvent);
@@ -116,7 +116,7 @@ public class TradeConsumer {
                 .counterpartyOrderId(tradeMessage.getCounterpartyOrderId())
                 .marketSession(tradeMessage.getMarketSession())
                 .metadata(tradeMessage.getMetadata())
-                .rawData(objectMapper.writeValueAsString(tradeMessage))
+                .rawData(tryWriteValueAsString(tradeMessage))
                 .processedAt(Instant.now())
                 .sequenceNumber(System.currentTimeMillis())
                 .eventType("EXECUTION")
@@ -190,5 +190,17 @@ public class TradeConsumer {
         private long failedTradesProcessed;
         private long lastProcessedTimestamp;
         private double successRate;
+    }
+    
+    /**
+     * Helper method to safely convert object to JSON string
+     */
+    private String tryWriteValueAsString(Object value) {
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (Exception e) {
+            log.warn("Failed to serialize object to JSON, using toString: {}", e.getMessage());
+            return value.toString();
+        }
     }
 }
