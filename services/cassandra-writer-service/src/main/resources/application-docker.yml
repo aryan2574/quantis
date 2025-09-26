@@ -1,0 +1,136 @@
+# ==================== DOCKER CONFIGURATION ====================
+# Configuration for running in Docker containers
+# This overrides localhost references with environment variables
+
+spring:
+  application:
+    name: cassandra-writer-service
+
+  # ==================== CASSANDRA CONFIGURATION ====================
+  data:
+    cassandra:
+      keyspace-name: ${CASSANDRA_KEYSPACE:quantis_trading}
+      contact-points: ${CASSANDRA_CONTACT_POINTS:cassandra}
+      port: ${CASSANDRA_PORT:9042}
+      local-datacenter: ${CASSANDRA_DATACENTER:datacenter1}
+
+      # Connection pool settings for high throughput
+      pool:
+        max-connections-per-host:
+          local: ${CASSANDRA_MAX_CONNECTIONS_LOCAL:8}
+          remote: ${CASSANDRA_MAX_CONNECTIONS_REMOTE:2}
+        max-requests-per-connection:
+          local: ${CASSANDRA_MAX_REQUESTS_LOCAL:32768}
+          remote: ${CASSANDRA_MAX_REQUESTS_REMOTE:2000}
+        max-queue-size: ${CASSANDRA_MAX_QUEUE_SIZE:256}
+        idle-timeout: ${CASSANDRA_IDLE_TIMEOUT:30}
+
+      # Performance optimizations
+      compression: ${CASSANDRA_COMPRESSION:SNAPPY}
+      protocol-version: ${CASSANDRA_PROTOCOL_VERSION:V4}
+
+      # Schema management
+      schema-action: CREATE_IF_NOT_EXISTS
+
+      # Retry policy
+      retry-policy:
+        max-retries: ${CASSANDRA_MAX_RETRIES:3}
+        base-delay: ${CASSANDRA_BASE_DELAY:100ms}
+        max-delay: ${CASSANDRA_MAX_DELAY:2s}
+
+      # Consistency level
+      consistency-level: ${CASSANDRA_CONSISTENCY_LEVEL:LOCAL_ONE}
+
+      # Timeout settings
+      request-timeout: ${CASSANDRA_REQUEST_TIMEOUT:30s}
+      connect-timeout: ${CASSANDRA_CONNECT_TIMEOUT:10s}
+
+  # ==================== KAFKA CONFIGURATION ====================
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP_ID:cassandra-writer-service-group}
+      auto-offset-reset: ${KAFKA_AUTO_OFFSET_RESET:latest}
+      enable-auto-commit: ${KAFKA_ENABLE_AUTO_COMMIT:false}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+      # Performance settings
+      fetch-min-size: ${KAFKA_FETCH_MIN_SIZE:1048576}
+      fetch-max-wait: ${KAFKA_FETCH_MAX_WAIT:500ms}
+      max-poll-records: ${KAFKA_MAX_POLL_RECORDS:1000}
+      max-partition-fetch-bytes: ${KAFKA_MAX_PARTITION_FETCH_BYTES:1048576}
+
+      # Reliability settings
+      session-timeout-ms: ${KAFKA_SESSION_TIMEOUT_MS:30000}
+      heartbeat-interval-ms: ${KAFKA_HEARTBEAT_INTERVAL_MS:10000}
+      isolation-level: ${KAFKA_ISOLATION_LEVEL:read_committed}
+
+      # Retry settings
+      retry-backoff-ms: ${KAFKA_RETRY_BACKOFF_MS:100}
+      max-retry-attempts: ${KAFKA_MAX_RETRY_ATTEMPTS:3}
+
+# ==================== SERVER CONFIGURATION ====================
+server:
+  port: ${SERVER_PORT:8085}
+  servlet:
+    context-path: /
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+
+# ==================== MANAGEMENT ENDPOINTS ====================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      show-components: always
+    metrics:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# ==================== LOGGING CONFIGURATION ====================
+logging:
+  level:
+    root: ${LOG_LEVEL_ROOT:INFO}
+    com.quantis.cassandra_writer_service: ${LOG_LEVEL_SERVICE:DEBUG}
+    org.springframework.kafka: ${LOG_LEVEL_KAFKA:INFO}
+    org.springframework.data.cassandra: ${LOG_LEVEL_CASSANDRA:INFO}
+    com.datastax.oss.driver: ${LOG_LEVEL_DRIVER:WARN}
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: /app/logs/cassandra-writer-service.log
+    max-size: ${LOG_MAX_SIZE:10MB}
+    max-history: ${LOG_MAX_HISTORY:30}
+
+# ==================== CASSANDRA WRITER SPECIFIC ====================
+cassandra-writer:
+  # Batch processing settings
+  batch:
+    size: ${CASSANDRA_BATCH_SIZE:100}
+    timeout-ms: ${CASSANDRA_BATCH_TIMEOUT_MS:1000}
+
+  # Performance tuning
+  performance:
+    max-concurrent-writes: ${CASSANDRA_MAX_CONCURRENT_WRITES:50}
+    write-timeout-ms: ${CASSANDRA_WRITE_TIMEOUT_MS:5000}
+    retry-attempts: ${CASSANDRA_RETRY_ATTEMPTS:3}
+
+  # Data retention
+  retention:
+    trade-events-days: ${CASSANDRA_TRADE_EVENTS_RETENTION_DAYS:365}
+    trade-summaries-days: ${CASSANDRA_TRADE_SUMMARIES_RETENTION_DAYS:1095}
+
+  # Monitoring
+  monitoring:
+    metrics-enabled: ${CASSANDRA_METRICS_ENABLED:true}
+    slow-query-threshold-ms: ${CASSANDRA_SLOW_QUERY_THRESHOLD_MS:100}

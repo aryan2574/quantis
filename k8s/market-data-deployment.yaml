@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: market-data-service
+  namespace: quantis-trading
+  labels:
+    app: market-data-service
+    component: data
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: market-data-service
+  template:
+    metadata:
+      labels:
+        app: market-data-service
+        component: data
+    spec:
+      containers:
+        - name: market-data-service
+          image: quantis/market-data-service:latest
+          ports:
+            - containerPort: 8082
+              name: http
+            - containerPort: 9091
+              name: grpc
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "kubernetes"
+            - name: DATABASE_URL
+              value: "jdbc:postgresql://postgres-service:5432/quantisdb"
+            - name: REDIS_URL
+              value: "redis://redis-service:6379"
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "kafka-service:9092"
+          envFrom:
+            - configMapRef:
+                name: quantis-config
+            - secretRef:
+                name: quantis-secrets
+          resources:
+            requests:
+              cpu: 300m
+              memory: 1Gi
+            limits:
+              cpu: 1500m
+              memory: 3Gi
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8082
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8082
+            initialDelaySeconds: 30
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: market-data-service
+  namespace: quantis-trading
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8082
+      targetPort: 8082
+      protocol: TCP
+      name: http
+    - port: 9091
+      targetPort: 9091
+      protocol: TCP
+      name: grpc
+  selector:
+    app: market-data-service

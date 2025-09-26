@@ -1,0 +1,182 @@
+# ==================== DASHBOARD GATEWAY CONFIGURATION ====================
+# GraphQL Gateway Service for Trading Dashboard
+# Aggregates data from all microservices while maintaining high performance
+
+spring:
+  application:
+    name: dashboard-gateway
+
+  # ==================== SERVER CONFIGURATION ====================
+  webflux:
+    base-path: /
+    multipart:
+      max-in-memory-size: 1MB
+      max-disk-usage-per-part: 10MB
+      max-parts: 256
+    codecs:
+      max-in-memory-size: 2MB
+      max-buffer-size: 2MB
+
+  # ==================== REDIS CONFIGURATION ====================
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    database: ${REDIS_DATABASE:0}
+    timeout: 2000ms
+    lettuce:
+      pool:
+        max-active: 20
+        max-idle: 10
+        min-idle: 2
+        max-wait: -1ms
+
+  # ==================== CACHE CONFIGURATION ====================
+  cache:
+    type: redis
+    redis:
+      time-to-live: 60000 # 1 minute default TTL
+      cache-null-values: false
+
+  # ==================== GRAPHQL CONFIGURATION ====================
+  graphql:
+    graphiql:
+      enabled: true
+      path: /graphiql
+    path: /graphql
+    cors:
+      allowed-origins: "*"
+      allowed-methods: "GET,POST,OPTIONS"
+      allowed-headers: "*"
+      allow-credentials: true
+
+  # ==================== SECURITY CONFIGURATION ====================
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${JWT_ISSUER_URI:https://your-auth-server}
+          jwk-set-uri: ${JWT_JWK_SET_URI:https://your-auth-server/.well-known/jwks.json}
+
+# ==================== SERVER CONFIGURATION ====================
+server:
+  port: ${SERVER_PORT:8085}
+  servlet:
+    context-path: /
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain,application/graphql
+
+# ==================== gRPC CLIENT CONFIGURATION ====================
+grpc:
+  client:
+    portfolio-service:
+      address: "static://${PORTFOLIO_SERVICE_HOST:localhost}:${PORTFOLIO_SERVICE_PORT:9090}"
+      negotiation-type: plaintext
+      keep-alive-time: 30s
+      keep-alive-timeout: 5s
+      keep-alive-without-calls: true
+      max-inbound-message-size: 4194304 # 4MB
+      max-inbound-metadata-size: 8192 # 8KB
+
+    order-ingress-service:
+      address: "static://${ORDER_INGRESS_SERVICE_HOST:localhost}:${ORDER_INGRESS_SERVICE_PORT:9090}"
+      negotiation-type: plaintext
+      keep-alive-time: 30s
+      keep-alive-timeout: 5s
+      keep-alive-without-calls: true
+      max-inbound-message-size: 4194304 # 4MB
+      max-inbound-metadata-size: 8192 # 8KB
+
+# ==================== WEB CLIENT CONFIGURATION ====================
+webclient:
+  market-data-service:
+    base-url: ${MARKET_DATA_SERVICE_URL:http://localhost:8084}
+    timeout: 5000ms
+    connection-timeout: 2000ms
+    read-timeout: 3000ms
+    write-timeout: 3000ms
+
+# ==================== MANAGEMENT ENDPOINTS ====================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,graphql
+  endpoint:
+    health:
+      show-details: always
+    graphql:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# ==================== LOGGING CONFIGURATION ====================
+logging:
+  level:
+    com.quantis.dashboard_gateway: DEBUG
+    org.springframework.graphql: DEBUG
+    org.springframework.security: INFO
+    io.grpc: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/dashboard-gateway.log
+
+# ==================== PERFORMANCE CONFIGURATION ====================
+# Optimize for high-throughput GraphQL operations
+
+# ==================== SERVICE CONFIGURATION ====================
+services:
+  portfolio:
+    url: ${PORTFOLIO_SERVICE_URL:http://localhost:8081}
+    timeout: 5000ms
+  market-data:
+    url: ${MARKET_DATA_SERVICE_URL:http://localhost:8082}
+    timeout: 3000ms
+  trading-engine:
+    url: ${TRADING_ENGINE_URL:http://localhost:8083}
+    timeout: 2000ms
+  order-ingress:
+    url: ${ORDER_INGRESS_URL:http://localhost:8084}
+    timeout: 3000ms
+  risk-service:
+    url: ${RISK_SERVICE_URL:http://localhost:8086}
+    timeout: 5000ms
+  auth-service:
+    url: ${AUTH_SERVICE_URL:http://localhost:8087}
+    timeout: 3000ms
+  update-service:
+    url: ${UPDATE_SERVICE_URL:http://localhost:8088}
+    timeout: 5000ms
+
+# ==================== CUSTOM CONFIGURATION ====================
+dashboard:
+  gateway:
+    # Performance tuning
+    max-concurrent-requests: 1000
+    request-timeout: 30000ms
+    subscription-timeout: 300000ms # 5 minutes
+
+    # Caching configuration
+    cache:
+      portfolio-ttl: 30000ms # 30 seconds
+      market-data-ttl: 1000ms # 1 second
+      order-data-ttl: 5000ms # 5 seconds
+      analytics-ttl: 60000ms # 1 minute
+
+    # Rate limiting
+    rate-limit:
+      enabled: true
+      requests-per-minute: 1000
+      burst-capacity: 100
+
+    # Real-time updates
+    real-time:
+      market-data-interval: 500ms
+      portfolio-interval: 5000ms
+      order-interval: 2000ms
+      position-interval: 3000ms

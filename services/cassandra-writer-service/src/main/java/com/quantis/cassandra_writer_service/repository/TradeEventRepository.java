@@ -1,6 +1,7 @@
 package com.quantis.cassandra_writer_service.repository;
 
 import com.quantis.cassandra_writer_service.model.TradeEvent;
+import com.quantis.cassandra_writer_service.model.TradeEventKey;
 import org.springframework.data.cassandra.repository.CassandraRepository;
 import org.springframework.data.cassandra.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -16,7 +17,7 @@ import java.util.UUID;
  * This repository provides optimized queries for time-series trade data.
  */
 @Repository
-public interface TradeEventRepository extends CassandraRepository<TradeEvent, TradeEvent.TradeEventKey> {
+public interface TradeEventRepository extends CassandraRepository<TradeEvent, TradeEventKey> {
     
     /**
      * Find all trade events for a specific symbol and date range

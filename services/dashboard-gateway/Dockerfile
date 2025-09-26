@@ -1,9 +1,7 @@
-# ==================== DASHBOARD GATEWAY DOCKERFILE ====================
-# Multi-stage build for optimized GraphQL Gateway Service
+# ==================== BUILD STAGE ====================
+FROM maven:3.9.6-eclipse-temurin-21 AS build
 
-# Build stage
-FROM maven:3.9.6-openjdk-21-slim AS build
-
+# Set working directory
 WORKDIR /app
 
 # Copy pom.xml and download dependencies
@@ -14,40 +12,34 @@ RUN mvn dependency:go-offline -B
 COPY src ./src
 RUN mvn clean package -DskipTests -B
 
-# Runtime stage
-FROM openjdk:21-jre-slim
+# ==================== RUNTIME STAGE ====================
+FROM eclipse-temurin:21-jre-alpine
 
+# Create non-root user for security
+RUN addgroup -g 1001 -S quantis && \
+    adduser -u 1001 -S quantis -G quantis
+
+# Set working directory
 WORKDIR /app
 
-# Install necessary packages
-RUN apt-get update && \
-    apt-get install -y curl && \
-    rm -rf /var/lib/apt/lists/*
-
-# Create non-root user
-RUN groupadd -r quantis && useradd -r -g quantis quantis
-
-# Copy built JAR
+# Copy the built JAR from build stage
 COPY --from=build /app/target/dashboard-gateway-*.jar app.jar
 
-# Create logs directory
-RUN mkdir -p /var/log && chown -R quantis:quantis /var/log
-
-# Change ownership
-RUN chown -R quantis:quantis /app
+# Change ownership to non-root user
+RUN chown quantis:quantis app.jar
 
 # Switch to non-root user
 USER quantis
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8085/actuator/health || exit 1
+# Add health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8085/actuator/health || exit 1
 
 # Expose port
 EXPOSE 8085
 
-# JVM optimization for GraphQL Gateway
-ENV JAVA_OPTS="-Xms512m -Xmx2g -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+UseStringDeduplication -XX:+OptimizeStringConcat -Djava.security.egd=file:/dev/./urandom"
+# JVM optimization for containers
+ENV JAVA_OPTS="-Xms512m -Xmx1024m -XX:+UseG1GC -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
 
-# Run application
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+# Run the application
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]

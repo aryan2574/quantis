@@ -1,9 +1,5 @@
-version: "3.8"
 services:
-  # ==================== EXTERNAL SERVICES (DOCKER) ====================
-  # These services run in Docker containers
-  # Your application services (order-ingress, portfolio-service, risk-service, trading-engine) run locally
-
+  # ==================== EXTERNAL SERVICES ====================
   zookeeper:
     image: confluentinc/cp-zookeeper:7.3.0
     environment:
@@ -11,6 +7,14 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
     ports:
       - "2181:2181"
+    networks:
+      - quantis-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   kafka:
     image: confluentinc/cp-kafka:7.3.0
@@ -21,8 +25,22 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - quantis-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "kafka-broker-api-versions",
+          "--bootstrap-server",
+          "localhost:9092",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   postgres:
     image: citusdata/citus:12.1
@@ -30,15 +48,36 @@ services:
       POSTGRES_USER: quantis
       POSTGRES_PASSWORD: quantis
       POSTGRES_DB: quantisdb
+      # Enable Citus extension
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
     ports:
-      - "5433:5432"
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../infra/sql/citus-setup.sql:/docker-entrypoint-initdb.d/citus-setup.sql
+    networks:
+      - quantis-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quantis -d quantisdb"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   redis:
-    image: redis:7.2
+    image: redis:7.2-alpine
     ports:
       - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - quantis-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
-  # ==================== DATA STORAGE SERVICES ====================
   cassandra:
     image: cassandra:4.1
     environment:
@@ -48,6 +87,14 @@ services:
       - "9042:9042"
     volumes:
       - cassandra_data:/var/lib/cassandra
+    networks:
+      - quantis-network
+    healthcheck:
+      test: ["CMD", "cqlsh", "-e", "describe keyspaces"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
@@ -68,25 +115,349 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+    networks:
+      - quantis-network
 
-  # ==================== APPLICATION SERVICES (RUN LOCALLY) ====================
-  # These services are configured to run locally on your machine
-  # Start them manually using: ./mvnw spring-boot:run
-  #
-  # order-ingress:           http://localhost:8080
-  # portfolio-service:       http://localhost:8082 (HTTP), localhost:9090 (gRPC)
-  # risk-service:            http://localhost:8081
-  # trading-engine:          http://localhost:8083
-  # market-data-service:     http://localhost:8084 (GraphQL + WebSocket + gRPC)
-  # dashboard-gateway:       http://localhost:8085 (GraphQL Gateway)
-  # elasticsearch-writer:   http://localhost:8086 (Elasticsearch Writer Service)
-  # cassandra-writer:       http://localhost:8087 (Cassandra Writer Service)
-  # postgres-writer:         http://localhost:8088 (PostgreSQL Writer Service)
-  # update-service:          http://localhost:8089 (Update Service)
+  # ==================== APPLICATION SERVICES ====================
+  auth-service:
+    build:
+      context: ../services/auth-service
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://quantis:quantis@postgres:5432/quantisdb
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=$JWT_SECRET}
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - quantis-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3001/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  market-data-service:
+    build:
+      context: ../services/market-data-service
+      dockerfile: Dockerfile
+    ports:
+      - "8082:8082"
+      - "9091:9091"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - DATABASE_URL=postgresql://quantis:quantis@postgres:5432/quantisdb
+      - REDIS_URL=redis://redis:6379
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - ALPHA_VANTAGE_API_KEY=${ALPHA_VANTAGE_API_KEY}
+      - EXCHANGE_RATE_API_KEY=${EXCHANGE_RATE_API_KEY}
+      - POLYGON_API_KEY=${POLYGON_API_KEY}
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+    networks:
+      - quantis-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8082/actuator/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  order-ingress:
+    build:
+      context: ../services/order-ingress
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - DATABASE_URL=postgresql://quantis:quantis@postgres:5432/quantisdb
+      - REDIS_URL=redis://redis:6379
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+    networks:
+      - quantis-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8080/actuator/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  portfolio-service:
+    build:
+      context: ../services/portfolio-service
+      dockerfile: Dockerfile
+    ports:
+      - "8083:8082"
+      - "9090:9090"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - DATABASE_URL=postgresql://quantis:quantis@postgres:5432/quantisdb
+      - REDIS_URL=redis://redis:6379
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+    networks:
+      - quantis-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8082/actuator/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  risk-service:
+    build:
+      context: ../services/risk-service
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - DATABASE_URL=postgresql://quantis:quantis@postgres:5432/quantisdb
+      - REDIS_URL=redis://redis:6379
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+    networks:
+      - quantis-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8081/actuator/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  trading-engine:
+    build:
+      context: ../services/trading-engine
+      dockerfile: Dockerfile
+    ports:
+      - "8084:8083"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - DATABASE_URL=postgresql://quantis:quantis@postgres:5432/quantisdb
+      - REDIS_URL=redis://redis:6379
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - ALPHA_VANTAGE_API_KEY=${ALPHA_VANTAGE_API_KEY}
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+    networks:
+      - quantis-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8083/actuator/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  update-service:
+    build:
+      context: ../services/update-service
+      dockerfile: Dockerfile
+    ports:
+      - "8085:8084"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - DATABASE_URL=postgresql://quantis:quantis@postgres:5432/quantisdb
+      - REDIS_URL=redis://redis:6379
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+    networks:
+      - quantis-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8084/actuator/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  dashboard-gateway:
+    build:
+      context: ../services/dashboard-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "8086:8085"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - DATABASE_URL=postgresql://quantis:quantis@postgres:5432/quantisdb
+      - REDIS_URL=redis://redis:6379
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+      - market-data-service
+      - order-ingress
+      - portfolio-service
+      - risk-service
+      - trading-engine
+      - update-service
+    networks:
+      - quantis-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8085/actuator/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  cassandra-writer-service:
+    build:
+      context: ../services/cassandra-writer-service
+      dockerfile: Dockerfile
+    ports:
+      - "8087:8087"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - CASSANDRA_CONTACT_POINTS=cassandra
+      - CASSANDRA_PORT=9042
+      - CASSANDRA_KEYSPACE=quantis_trading
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    depends_on:
+      cassandra:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    networks:
+      - quantis-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8087/actuator/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  trader-dashboard:
+    build:
+      context: ../services/trader-dashboard
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8086
+      - REACT_APP_WS_URL=ws://localhost:8082
+    depends_on:
+      - dashboard-gateway
+    networks:
+      - quantis-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:80/",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
 volumes:
-  esdata:
+  postgres_data:
+    driver: local
+  redis_data:
     driver: local
   cassandra_data:
     driver: local
-  # Application service logs are stored locally in services/*/logs/ directories
+  esdata:
+    driver: local
+
+networks:
+  quantis-network:
+    driver: bridge

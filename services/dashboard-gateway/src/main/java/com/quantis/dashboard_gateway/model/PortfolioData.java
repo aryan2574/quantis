@@ -131,4 +131,29 @@ public class PortfolioData {
         private BigDecimal endValue;
         private Instant lastUpdated;
     }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PortfolioUpdate {
+        private String userId;
+        private BigDecimal totalValue;
+        private BigDecimal totalPnL;
+        private BigDecimal dailyPnL;
+        private Instant timestamp;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PositionUpdate {
+        private String userId;
+        private String symbol;
+        private BigDecimal quantity;
+        private BigDecimal currentPrice;
+        private BigDecimal unrealizedPnL;
+        private Instant timestamp;
+    }
 }

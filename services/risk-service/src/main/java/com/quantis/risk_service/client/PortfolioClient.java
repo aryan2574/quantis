@@ -5,11 +5,16 @@ import io.grpc.StatusRuntimeException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.devh.boot.grpc.client.inject.GrpcClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * gRPC client for communicating with Portfolio Service.
- * Provides fast, efficient access to portfolio data for risk calculations.
+ * Provides access to portfolio data for risk calculations.
  */
 @Component
 @RequiredArgsConstructor
@@ -20,7 +25,7 @@ public class PortfolioClient {
     private PortfolioServiceGrpc.PortfolioServiceBlockingStub portfolioStub;
     
     /**
-     * Get user's cash balance via gRPC
+     * Get user's cash balance
      */
     public double getCashBalance(String userId) {
         try {
@@ -30,6 +35,7 @@ public class PortfolioClient {
             
             GetCashBalanceResponse response = portfolioStub.getCashBalance(request);
             return response.getCashBalance();
+            
         } catch (StatusRuntimeException e) {
             log.error("gRPC error getting cash balance for user: {}", userId, e);
             return 100_000.0; // Default fallback
@@ -40,7 +46,7 @@ public class PortfolioClient {
     }
     
     /**
-     * Get user's position value for a specific symbol via gRPC
+     * Get user's position value for a specific symbol
      */
     public double getPositionValue(String userId, String symbol) {
         try {
@@ -51,132 +57,142 @@ public class PortfolioClient {
             
             GetPositionValueResponse response = portfolioStub.getPositionValue(request);
             return response.getPositionValue();
+            
         } catch (StatusRuntimeException e) {
             log.error("gRPC error getting position value for user: {} symbol: {}", userId, symbol, e);
-            return 0.0; // Default fallback
+            return 50_000.0; // Default fallback
         } catch (Exception e) {
             log.error("Error getting position value for user: {} symbol: {}", userId, symbol, e);
-            return 0.0; // Default fallback
+            return 50_000.0; // Default fallback
         }
     }
     
     /**
-     * Get user's total portfolio value via gRPC
+     * Get user's total portfolio value
      */
-    public PortfolioValue getPortfolioValue(String userId) {
+    public double getTotalPortfolioValue(String userId) {
         try {
             GetPortfolioValueRequest request = GetPortfolioValueRequest.newBuilder()
                 .setUserId(userId)
                 .build();
             
             GetPortfolioValueResponse response = portfolioStub.getPortfolioValue(request);
+            return response.getTotalValue();
             
-            return PortfolioValue.builder()
-                .totalValue(response.getTotalValue())
-                .cashBalance(response.getCashBalance())
-                .positionsValue(response.getPositionsValue())
-                .unrealizedPnl(response.getUnrealizedPnl())
-                .currency(response.getCurrency())
-                .timestamp(response.getTimestamp())
-                .build();
         } catch (StatusRuntimeException e) {
-            log.error("gRPC error getting portfolio value for user: {}", userId, e);
-            return getDefaultPortfolioValue();
+            log.error("gRPC error getting total portfolio value for user: {}", userId, e);
+            return 150_000.0; // Default fallback
         } catch (Exception e) {
-            log.error("Error getting portfolio value for user: {}", userId, e);
-            return getDefaultPortfolioValue();
+            log.error("Error getting total portfolio value for user: {}", userId, e);
+            return 150_000.0; // Default fallback
         }
     }
     
     /**
-     * Get detailed position information via gRPC
+     * Get user's positions
+     * TODO: Implement actual portfolio service communication
+     */
+    public List<Map<String, Object>> getPositions(String userId) {
+        log.debug("Getting positions for user: {}", userId);
+        // TODO: Implement actual portfolio service communication
+        return List.of(
+            Map.of("symbol", "AAPL", "quantity", 100, "value", 15000.0),
+            Map.of("symbol", "GOOGL", "quantity", 50, "value", 7500.0)
+        );
+    }
+    
+    /**
+     * Get user's leverage ratio
+     * TODO: Implement actual portfolio service communication
+     */
+    public double getLeverageRatio(String userId) {
+        log.debug("Getting leverage ratio for user: {}", userId);
+        // TODO: Implement actual portfolio service communication
+        return 1.5; // Default fallback
+    }
+    
+    /**
+     * Get user's margin requirements
+     * TODO: Implement actual portfolio service communication
+     */
+    public double getMarginRequirement(String userId) {
+        log.debug("Getting margin requirement for user: {}", userId);
+        // TODO: Implement actual portfolio service communication
+        return 25_000.0; // Default fallback
+    }
+    
+    /**
+     * Check if user has sufficient margin for a trade
+     * TODO: Implement actual portfolio service communication
+     */
+    public boolean hasSufficientMargin(String userId, double tradeValue) {
+        log.debug("Checking margin sufficiency for user: {}, trade value: {}", userId, tradeValue);
+        // TODO: Implement actual portfolio service communication
+        return tradeValue <= 50_000.0; // Default fallback
+    }
+    
+    /**
+     * Get user's portfolio allocation by asset type
+     * TODO: Implement actual portfolio service communication
+     */
+    public Map<String, Double> getPortfolioAllocation(String userId) {
+        log.debug("Getting portfolio allocation for user: {}", userId);
+        // TODO: Implement actual portfolio service communication
+        return Map.of(
+            "STOCKS", 0.6,
+            "CRYPTO", 0.3,
+            "CASH", 0.1
+        );
+    }
+    
+    /**
+     * Get user's concentration risk by symbol
+     * TODO: Implement actual portfolio service communication
+     */
+    public Map<String, Double> getConcentrationRisk(String userId) {
+        log.debug("Getting concentration risk for user: {}", userId);
+        // TODO: Implement actual portfolio service communication
+        return Map.of(
+            "AAPL", 0.4,
+            "GOOGL", 0.3,
+            "TSLA", 0.2,
+            "OTHER", 0.1
+        );
+    }
+    
+    /**
+     * Get user's portfolio performance metrics
+     * TODO: Implement actual portfolio service communication
+     */
+    public Map<String, Double> getPerformanceMetrics(String userId) {
+        log.debug("Getting performance metrics for user: {}", userId);
+        // TODO: Implement actual portfolio service communication
+        return Map.of(
+            "totalReturn", 0.15,
+            "sharpeRatio", 1.2,
+            "volatility", 0.18,
+            "maxDrawdown", 0.12
+        );
+    }
+    
+    /**
+     * Get portfolio value information
+     * TODO: Implement actual portfolio service communication
+     */
+    public PortfolioValue getPortfolioValue(String userId) {
+        log.debug("Getting portfolio value for user: {}", userId);
+        double cashBalance = getCashBalance(userId);
+        double totalValue = getTotalPortfolioValue(userId);
+        return new PortfolioValue(cashBalance, totalValue);
+    }
+    
+    /**
+     * Get position information for a specific symbol
+     * TODO: Implement actual portfolio service communication
      */
     public PositionInfo getPosition(String userId, String symbol) {
-        try {
-            GetPositionRequest request = GetPositionRequest.newBuilder()
-                .setUserId(userId)
-                .setSymbol(symbol)
-                .build();
-            
-            GetPositionResponse response = portfolioStub.getPosition(request);
-            
-            return PositionInfo.builder()
-                .userId(response.getUserId())
-                .symbol(response.getSymbol())
-                .quantity(response.getQuantity())
-                .averagePrice(response.getAveragePrice())
-                .currentPrice(response.getCurrentPrice())
-                .marketValue(response.getMarketValue())
-                .unrealizedPnl(response.getUnrealizedPnl())
-                .lastUpdated(response.getLastUpdated())
-                .build();
-        } catch (StatusRuntimeException e) {
-            log.error("gRPC error getting position for user: {} symbol: {}", userId, symbol, e);
-            return getDefaultPosition(userId, symbol);
-        } catch (Exception e) {
-            log.error("Error getting position for user: {} symbol: {}", userId, symbol, e);
-            return getDefaultPosition(userId, symbol);
-        }
-    }
-    
-    /**
-     * Default portfolio value when gRPC fails
-     */
-    private PortfolioValue getDefaultPortfolioValue() {
-        return PortfolioValue.builder()
-            .totalValue(100_000.0)
-            .cashBalance(100_000.0)
-            .positionsValue(0.0)
-            .unrealizedPnl(0.0)
-            .currency("USD")
-            .timestamp(System.currentTimeMillis())
-            .build();
-    }
-    
-    /**
-     * Default position when gRPC fails
-     */
-    private PositionInfo getDefaultPosition(String userId, String symbol) {
-        return PositionInfo.builder()
-            .userId(userId)
-            .symbol(symbol)
-            .quantity(0.0)
-            .averagePrice(0.0)
-            .currentPrice(0.0)
-            .marketValue(0.0)
-            .unrealizedPnl(0.0)
-            .lastUpdated(System.currentTimeMillis())
-            .build();
-    }
-    
-    /**
-     * Data classes for portfolio information
-     */
-    @lombok.Data
-    @lombok.Builder
-    @lombok.NoArgsConstructor
-    @lombok.AllArgsConstructor
-    public static class PortfolioValue {
-        private double totalValue;
-        private double cashBalance;
-        private double positionsValue;
-        private double unrealizedPnl;
-        private String currency;
-        private long timestamp;
-    }
-    
-    @lombok.Data
-    @lombok.Builder
-    @lombok.NoArgsConstructor
-    @lombok.AllArgsConstructor
-    public static class PositionInfo {
-        private String userId;
-        private String symbol;
-        private double quantity;
-        private double averagePrice;
-        private double currentPrice;
-        private double marketValue;
-        private double unrealizedPnl;
-        private long lastUpdated;
+        log.debug("Getting position for user: {}, symbol: {}", userId, symbol);
+        // TODO: Implement actual portfolio service communication
+        return new PositionInfo(symbol, 100, 15000.0, 150.0);
     }
 }

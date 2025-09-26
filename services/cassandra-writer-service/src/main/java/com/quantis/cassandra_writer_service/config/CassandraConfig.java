@@ -66,8 +66,5 @@ public class CassandraConfig extends AbstractCassandraConfiguration {
         return Arrays.asList(specification);
     }
     
-    @Override
-    protected boolean getMetricsEnabled() {
-        return false; // Disable metrics for performance
-    }
+    // Metrics are disabled by default for performance
 }

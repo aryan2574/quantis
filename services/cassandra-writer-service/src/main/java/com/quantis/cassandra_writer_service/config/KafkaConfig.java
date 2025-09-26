@@ -75,10 +75,7 @@ public class KafkaConfig {
         factory.setBatchListener(true);
         
         // Error handling
-        factory.setCommonErrorHandler((exception, data) -> {
-            // Log error and continue processing
-            System.err.println("Error processing message: " + exception.getMessage());
-        });
+        factory.setCommonErrorHandler(new org.springframework.kafka.listener.DefaultErrorHandler());
         
         return factory;
     }

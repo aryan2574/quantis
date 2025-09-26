@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: quantis-trading
+  labels:
+    name: quantis-trading
+    app: trading-platform
