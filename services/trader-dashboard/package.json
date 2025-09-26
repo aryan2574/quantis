@@ -1,7 +1,7 @@
 {
   "name": "quantis-trader-dashboard",
   "version": "1.0.0",
-  "description": "Professional Trading Dashboard for Quantis Platform",
+  "description": "Professional Trading Dashboard for Quantis",
   "private": true,
   "type": "module",
   "dependencies": {
@@ -41,14 +41,14 @@
     "vite": "^4.5.0"
   },
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
+    "dev": "npm run build:wasm && vite",
+    "build": "npm run build:wasm && tsc && vite build",
+    "build:wasm": "node scripts/build-wasm.js build",
+    "build:wasm:clean": "node scripts/build-wasm.js clean",
+    "build:wasm:check": "node scripts/build-wasm.js check",
+    "setup:emscripten": "node scripts/setup-emscripten.js",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview",
-    "build-wasm": "scripts/build-wasm.bat",
-    "install-emscripten": "scripts/install-emscripten.bat",
-    "build-wasm-unix": "scripts/build-wasm.sh",
-    "install-emscripten-unix": "scripts/install-emscripten.sh"
+    "preview": "vite preview"
   },
   "browserslist": {
     "production": [
