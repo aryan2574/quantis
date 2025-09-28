@@ -49,6 +49,14 @@ type Query {
 
   # Dashboard Overview
   dashboardOverview(userId: String!): DashboardOverview
+
+  # Security & Risk Management
+  getSecurityDashboard: SecurityDashboard!
+  getRiskDashboard: RiskDashboard!
+  getCircuitBreakerStatus: CircuitBreakerStatus!
+  getUserApiKeys(userId: String!): [ApiKeyInfo!]!
+  getApiKeyUsage(apiKeyId: String!, period: String!): ApiKeyUsageStats!
+  validateApiKey(apiKey: String!): ApiKeyValidationResult!
 }
 
 # ==================== MUTATION TYPES ====================
@@ -61,6 +69,23 @@ type Mutation {
 
   # Portfolio Operations
   updateWatchlist(userId: String!, symbols: [String!]!): WatchlistResponse!
+
+  # Security & Risk Management
+  createApiKey(input: CreateApiKeyInput!): ApiKeyResponse!
+  updateApiKey(apiKeyId: String!, input: UpdateApiKeyInput!): ApiKeyResponse!
+  deleteApiKey(apiKeyId: String!): DeleteResponse!
+  rotateApiKey(apiKeyId: String!): ApiKeyResponse!
+  encryptData(input: EncryptDataInput!): EncryptionResponse!
+  decryptData(input: DecryptDataInput!): DecryptionResponse!
+  triggerCircuitBreaker(
+    type: CircuitBreakerType!
+    identifier: String!
+    reason: String!
+  ): CircuitBreakerResponse!
+  resetCircuitBreaker(
+    type: CircuitBreakerType!
+    identifier: String!
+  ): CircuitBreakerResponse!
 }
 
 # ==================== SUBSCRIPTION TYPES ====================
@@ -79,6 +104,11 @@ type Subscription {
 
   # Dashboard Updates
   dashboardUpdates(userId: String!): DashboardUpdate!
+
+  # Security Updates
+  riskUpdates(userId: String!): RiskUpdate!
+  circuitBreakerUpdates: CircuitBreakerUpdate!
+  securityAlerts(userId: String!): SecurityAlert!
 }
 
 # ==================== PORTFOLIO TYPES ====================
@@ -420,4 +450,245 @@ type DashboardUpdate {
   overview: DashboardOverview!
   timestamp: DateTime!
   updateType: String!
+}
+
+# ==================== SECURITY TYPES ====================
+
+type RiskUpdate {
+  userId: String!
+  riskLevel: RiskLevel!
+  overallRiskScore: Float!
+  fraudRiskScore: Float!
+  portfolioRiskScore: Float!
+  marketCorrelation: Float!
+  recommendations: [String!]!
+  timestamp: DateTime!
+}
+
+type CircuitBreakerUpdate {
+  type: CircuitBreakerType!
+  identifier: String!
+  state: CircuitBreakerState!
+  reason: String
+  timestamp: DateTime!
+}
+
+type SecurityAlert {
+  userId: String!
+  alertType: String!
+  severity: AlertSeverity!
+  message: String!
+  timestamp: DateTime!
+}
+
+type FraudDetectionResult {
+  orderId: String!
+  userId: String!
+  timestamp: DateTime!
+  velocityScore: Float!
+  patternScore: Float!
+  anomalyScore: Float!
+  behavioralScore: Float!
+  mlScore: Float!
+  overallRiskScore: Float!
+  fraudProbability: FraudProbability!
+  recommendations: [String!]!
+  error: String
+}
+
+type ApiKeyInfo {
+  id: String!
+  name: String!
+  permissions: [String!]!
+  rateLimit: Int!
+  expiresAt: DateTime
+  createdAt: DateTime!
+  lastUsedAt: DateTime
+  isActive: Boolean!
+}
+
+type ApiKeyUsageStats {
+  apiKeyId: String!
+  period: String!
+  totalRequests: Int!
+  successfulRequests: Int!
+  failedRequests: Int!
+  averageResponseTime: Float!
+  peakRequestsPerHour: Int!
+  topEndpoints: [EndpointUsage!]!
+  errorRate: Float!
+}
+
+type EndpointUsage {
+  endpoint: String!
+  count: Int!
+}
+
+type SecurityDashboard {
+  riskLevel: RiskLevel!
+  riskScore: Float!
+  permissions: [String!]!
+  apiKeyStatus: String!
+  encryptionStatus: String!
+  lastLogin: DateTime!
+  securityAlerts: [SecurityAlert!]!
+  complianceStatus: String!
+}
+
+enum RiskLevel {
+  MINIMAL
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum CircuitBreakerType {
+  USER
+  SYMBOL
+  MARKET
+  SYSTEM
+  RISK
+}
+
+enum CircuitBreakerState {
+  CLOSED
+  OPEN
+  HALF_OPEN
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum FraudProbability {
+  MINIMAL
+  LOW
+  MEDIUM
+  HIGH
+}
+
+# ==================== SECURITY INPUT TYPES ====================
+
+input CreateApiKeyInput {
+  name: String!
+  description: String
+  permissions: [String!]!
+  rateLimit: Int
+  expiresAt: DateTime
+}
+
+input UpdateApiKeyInput {
+  name: String
+  description: String
+  permissions: [String!]
+  rateLimit: Int
+  expiresAt: DateTime
+  isActive: Boolean
+}
+
+input EncryptDataInput {
+  data: String!
+  encryptionKey: String
+}
+
+input DecryptDataInput {
+  encryptedData: String!
+  encryptionKey: String
+}
+
+# ==================== SECURITY RESPONSE TYPES ====================
+
+type ApiKeyResponse {
+  id: String!
+  name: String!
+  key: String!
+  permissions: [String!]!
+  rateLimit: Int!
+  expiresAt: DateTime
+  createdAt: DateTime!
+}
+
+type ApiKeyValidationResult {
+  valid: Boolean!
+  userId: String
+  permissions: [String!]
+  rateLimitRemaining: Int
+  rateLimitReset: DateTime
+  error: String
+}
+
+type EncryptionResponse {
+  encryptedData: String!
+  iv: String!
+  tag: String!
+  algorithm: String!
+  timestamp: DateTime!
+}
+
+type DecryptionResponse {
+  decryptedData: String!
+}
+
+type RiskDashboard {
+  systemRiskStatus: SystemRiskStatus!
+  marketRiskMetrics: [MarketRiskMetrics!]!
+  highRiskUsers: [UserRiskProfile!]!
+  recentAlerts: [SecurityAlert!]!
+}
+
+type SystemRiskStatus {
+  totalUsers: Int!
+  highRiskUsers: Int!
+  systemRiskScore: Float!
+  marketVolatility: Float!
+  riskLevel: RiskLevel!
+  lastUpdated: DateTime!
+}
+
+type MarketRiskMetrics {
+  symbol: String!
+  riskLevel: RiskLevel!
+  volatility: Float!
+  volume: Long!
+  priceChange: Float!
+  lastUpdated: DateTime!
+}
+
+type UserRiskProfile {
+  userId: String!
+  riskLevel: RiskLevel!
+  overallRiskScore: Float!
+  fraudRiskScore: Float!
+  portfolioRiskScore: Float!
+  marketCorrelation: Float!
+  lastTradeTime: DateTime!
+}
+
+type CircuitBreakerStatus {
+  systemCircuitBreaker: CircuitBreakerState!
+  marketCircuitBreaker: CircuitBreakerState!
+  userCircuitBreakers: [CircuitBreakerInfo!]!
+  symbolCircuitBreakers: [CircuitBreakerInfo!]!
+}
+
+type CircuitBreakerInfo {
+  identifier: String!
+  state: CircuitBreakerState!
+  triggerTime: DateTime
+  triggerReason: String
+  failureCount: Int!
+}
+
+type DeleteResponse {
+  success: Boolean!
+  message: String!
+}
+
+type CircuitBreakerResponse {
+  success: Boolean!
+  message: String!
+  circuitBreaker: CircuitBreakerInfo!
 }

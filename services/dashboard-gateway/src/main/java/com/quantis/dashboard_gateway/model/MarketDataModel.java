@@ -154,4 +154,31 @@ public class MarketDataModel {
         private BigDecimal low24h;
         private BigDecimal marketCap;
     }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class MarketDataUpdate {
+        private String symbol;
+        private BigDecimal price;
+        private BigDecimal change;
+        private BigDecimal changePercent;
+        private Long volume;
+        private Instant timestamp;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class TradeUpdate {
+        private String userId;
+        private String tradeId;
+        private String symbol;
+        private BigDecimal price;
+        private BigDecimal quantity;
+        private String side;
+        private Instant timestamp;
+    }
 }

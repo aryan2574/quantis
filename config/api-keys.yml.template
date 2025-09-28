@@ -1,0 +1,131 @@
+# API Keys Configuration Template
+# Copy this file to api-keys.yml and fill in your actual API keys
+# IMPORTANT: Never commit api-keys.yml to version control!
+
+api-keys:
+  alpha-vantage:
+    api-key: "${ALPHA_VANTAGE_API_KEY:your_alpha_vantage_api_key_here}"  # Set via environment variable
+    base-url: "https://www.alphavantage.co"
+    rate-limit:
+      calls-per-minute: 5
+      calls-per-day: 500
+    endpoints:
+      digital-currency: "/query?function=DIGITAL_CURRENCY_INTRADAY"
+      forex: "/query?function=FX_INTRADAY"
+      time-series: "/query?function=TIME_SERIES_INTRADAY"
+      listing-status: "/query?function=LISTING_STATUS"
+
+  exchange-rate:
+    api-key: "${EXCHANGE_RATE_API_KEY:your_exchange_rate_api_key_here}"  # Set via environment variable
+    base-url: "https://v6.exchangerate-api.com/v6"
+    rate-limit:
+      calls-per-minute: 1000
+      calls-per-day: 100000
+    endpoints:
+      latest: "/latest"
+      historical: "/history"
+      convert: "/pair"
+
+  polygon:
+    api-key: "${POLYGON_API_KEY:your_polygon_api_key_here}"  # Set via environment variable
+    base-url: "https://api.polygon.io"
+    rate-limit:
+      calls-per-minute: 1000
+      calls-per-day: 100000
+    endpoints:
+      stocks: "/v2/aggs/ticker"
+      forex: "/v1/last/forex"
+      crypto: "/v1/last/crypto"
+      options: "/v3/reference/options/contracts"
+
+# Market Data Configuration
+market-data:
+  default-provider: "alpha-vantage"
+  cache-ttl:
+    symbols: 3600        # 1 hour
+    market-data: 5       # 5 seconds
+    historical: 3600     # 1 hour
+    market-depth: 30    # 30 seconds
+  
+  refresh-intervals:
+    crypto: 1000         # 1 second
+    forex: 500          # 0.5 seconds
+    stocks: 1000        # 1 second
+    futures: 500        # 0.5 seconds
+    options: 1000       # 1 second
+    enterprise-tokens: 5000  # 5 seconds
+
+# Symbol Configuration
+symbols:
+  crypto-spot:
+    - "BTC"
+    - "ETH"
+    - "ADA"
+    - "DOT"
+    - "LINK"
+    - "UNI"
+    - "LTC"
+    - "BCH"
+    - "XLM"
+    - "ATOM"
+    - "SOL"
+    - "AVAX"
+    - "MATIC"
+    - "ALGO"
+    - "VET"
+    - "ICP"
+    - "FIL"
+    - "TRX"
+    - "ETC"
+    - "XRP"
+  
+  crypto-futures:
+    - "BTC"
+    - "ETH"
+    - "ADA"
+    - "DOT"
+    - "LINK"
+    - "UNI"
+    - "LTC"
+    - "BCH"
+    - "XLM"
+    - "ATOM"
+  
+  forex:
+    - "EURUSD"
+    - "GBPUSD"
+    - "USDJPY"
+    - "USDCHF"
+    - "AUDUSD"
+    - "CADUSD"
+    - "NZDUSD"
+  
+  stocks:
+    - "AAPL"
+    - "GOOGL"
+    - "MSFT"
+    - "AMZN"
+    - "TSLA"
+    - "META"
+    - "NVDA"
+    - "NFLX"
+    - "AMD"
+    - "INTC"
+    - "CRM"
+    - "ADBE"
+    - "PYPL"
+    - "UBER"
+    - "LYFT"
+    - "SQ"
+    - "ROKU"
+  
+  futures:
+    - "ES"    # S&P 500
+    - "NQ"    # NASDAQ
+    - "YM"    # Dow Jones
+    - "RTY"   # Russell 2000
+    - "GC"    # Gold
+    - "SI"    # Silver
+    - "CL"    # Crude Oil
+    - "NG"    # Natural Gas
+    - "ZC"    # Corn

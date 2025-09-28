@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.5</version>
+        <version>3.2.5</version>
         <relativePath/>
     </parent>
     
@@ -17,8 +17,8 @@
     
     <properties>
         <java.version>21</java.version>
-        <spring-data-cassandra.version>4.3.6</spring-data-cassandra.version>
-        <cassandra-driver.version>4.17.0</cassandra-driver.version>
+        <spring-data-cassandra.version>4.1.5</spring-data-cassandra.version>
+        <cassandra-driver.version>4.15.0</cassandra-driver.version>
     </properties>
     
     <dependencies>

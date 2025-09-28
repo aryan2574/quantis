@@ -1,0 +1,298 @@
+# Cassandra Writer Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cassandra-writer-service
+  namespace: quantis-trading
+  labels:
+    app: cassandra-writer-service
+    component: writer
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cassandra-writer-service
+  template:
+    metadata:
+      labels:
+        app: cassandra-writer-service
+        component: writer
+    spec:
+      containers:
+        - name: cassandra-writer-service
+          image: quantis/cassandra-writer-service:latest
+          ports:
+            - containerPort: 8087
+              name: http
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "kubernetes"
+            - name: CASSANDRA_CONTACT_POINTS
+              value: "cassandra-service"
+            - name: CASSANDRA_PORT
+              value: "9042"
+            - name: CASSANDRA_KEYSPACE
+              value: "quantis_trading"
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "kafka-service:9092"
+          envFrom:
+            - configMapRef:
+                name: quantis-config
+            - secretRef:
+                name: quantis-secrets
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 2Gi
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8087
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8087
+            initialDelaySeconds: 30
+            periodSeconds: 10
+---
+# Elasticsearch Writer Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elasticsearch-writer-service
+  namespace: quantis-trading
+  labels:
+    app: elasticsearch-writer-service
+    component: writer
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: elasticsearch-writer-service
+  template:
+    metadata:
+      labels:
+        app: elasticsearch-writer-service
+        component: writer
+    spec:
+      containers:
+        - name: elasticsearch-writer-service
+          image: quantis/elasticsearch-writer-service:latest
+          ports:
+            - containerPort: 8088
+              name: http
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "kubernetes"
+            - name: ELASTICSEARCH_URL
+              value: "http://elasticsearch-service:9200"
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "kafka-service:9092"
+          envFrom:
+            - configMapRef:
+                name: quantis-config
+            - secretRef:
+                name: quantis-secrets
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 2Gi
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8088
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8088
+            initialDelaySeconds: 30
+            periodSeconds: 10
+---
+# PostgreSQL Writer Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-writer-service
+  namespace: quantis-trading
+  labels:
+    app: postgres-writer-service
+    component: writer
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: postgres-writer-service
+  template:
+    metadata:
+      labels:
+        app: postgres-writer-service
+        component: writer
+    spec:
+      containers:
+        - name: postgres-writer-service
+          image: quantis/postgres-writer-service:latest
+          ports:
+            - containerPort: 8089
+              name: http
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "kubernetes"
+            - name: DATABASE_URL
+              value: "jdbc:postgresql://postgres-service:5432/quantisdb"
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "kafka-service:9092"
+          envFrom:
+            - configMapRef:
+                name: quantis-config
+            - secretRef:
+                name: quantis-secrets
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 2Gi
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8089
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8089
+            initialDelaySeconds: 30
+            periodSeconds: 10
+---
+# Database Sync Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: database-sync-service
+  namespace: quantis-trading
+  labels:
+    app: database-sync-service
+    component: sync
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: database-sync-service
+  template:
+    metadata:
+      labels:
+        app: database-sync-service
+        component: sync
+    spec:
+      containers:
+        - name: database-sync-service
+          image: quantis/database-sync-service:latest
+          ports:
+            - containerPort: 8090
+              name: http
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "kubernetes"
+            - name: POSTGRES_URL
+              value: "jdbc:postgresql://postgres-service:5432/quantisdb"
+            - name: CASSANDRA_CONTACT_POINTS
+              value: "cassandra-service"
+            - name: CASSANDRA_PORT
+              value: "9042"
+            - name: CASSANDRA_KEYSPACE
+              value: "quantis_trading"
+            - name: REDIS_URL
+              value: "redis://redis-service:6379"
+          envFrom:
+            - configMapRef:
+                name: quantis-config
+            - secretRef:
+                name: quantis-secrets
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 2Gi
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8090
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8090
+            initialDelaySeconds: 30
+            periodSeconds: 10
+---
+# Services
+apiVersion: v1
+kind: Service
+metadata:
+  name: cassandra-writer-service
+  namespace: quantis-trading
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8087
+      targetPort: 8087
+      protocol: TCP
+  selector:
+    app: cassandra-writer-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch-writer-service
+  namespace: quantis-trading
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8088
+      targetPort: 8088
+      protocol: TCP
+  selector:
+    app: elasticsearch-writer-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-writer-service
+  namespace: quantis-trading
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8089
+      targetPort: 8089
+      protocol: TCP
+  selector:
+    app: postgres-writer-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: database-sync-service
+  namespace: quantis-trading
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8090
+      targetPort: 8090
+      protocol: TCP
+  selector:
+    app: database-sync-service
